@@ -18,7 +18,22 @@
 <meta name="apple-mobile-web-app-title" content="ScoreTrack">
 <link rel="manifest" href="manifest-st.json">
 <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%231a1a1a'/><line x1='14' y1='38' x2='50' y2='38' stroke='%233a3a3a' stroke-width='1.2'/><line x1='32' y1='11' x2='32' y2='27' stroke='%2366CCEE' stroke-width='2.5' stroke-linecap='round'/><line x1='24' y1='19' x2='40' y2='19' stroke='%2366CCEE' stroke-width='2.5' stroke-linecap='round'/><line x1='24' y1='51' x2='40' y2='51' stroke='%23EE6677' stroke-width='2.5' stroke-linecap='round'/></svg>">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%231a1a1a'/><line x1='14' y1='38' x2='50' y2='38' stroke='%233a3a3a' stroke-width='1.2'/><line x1='32' y1='11' x2='32' y2='27' stroke='%2366CCEE' stroke-width='2.5' stroke-linecap='round'/><line x1='24' y1='19' x2='40' y2='19' stroke='%2366CCEE' stroke-width='2.5' stroke-linecap='round'/><line x1='24' y1='51' x2='40' y2='51' stroke='%23EE6677' stroke-width='2.5' stroke-linecap='round'/></svg>">
+<link rel="icon" id="dyn-favicon" type="image/png">
+<script>
+(function(){
+  try{
+    const c=document.createElement('canvas');c.width=64;c.height=64;
+    const ctx=c.getContext('2d');
+    const r=14;ctx.beginPath();ctx.moveTo(r,0);ctx.lineTo(64-r,0);ctx.quadraticCurveTo(64,0,64,r);ctx.lineTo(64,64-r);ctx.quadraticCurveTo(64,64,64-r,64);ctx.lineTo(r,64);ctx.quadraticCurveTo(0,64,0,64-r);ctx.lineTo(0,r);ctx.quadraticCurveTo(0,0,r,0);ctx.closePath();ctx.fillStyle='#1a1a1a';ctx.fill();
+    ctx.strokeStyle='#3a3a3a';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(14,38);ctx.lineTo(50,38);ctx.stroke();
+    ctx.strokeStyle='#66CCEE';ctx.lineWidth=2.5;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(32,11);ctx.lineTo(32,27);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(24,19);ctx.lineTo(40,19);ctx.stroke();
+    ctx.strokeStyle='#EE6677';ctx.beginPath();ctx.moveTo(24,51);ctx.lineTo(40,51);ctx.stroke();
+    document.getElementById('dyn-favicon').href=c.toDataURL('image/png');
+  }catch(e){}
+})();
+</script>
 <title>ScoreTrack</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Share+Tech+Mono&family=Inter:wght@400;600;700;800&family=Press+Start+2P&family=Cinzel:wght@400;600;700&family=Bebas+Neue&display=swap');
@@ -173,7 +188,7 @@
 
 html{overflow-x:hidden;width:100%;height:100%;}body{height:100%;width:100%;min-height:100vh;background:var(--bg-grad);color:var(--text);font-family:'Inter',sans-serif;overflow-x:hidden;}
 
-.page{display:none;flex-direction:column;align-items:center;min-height:100vh;padding:44px 20px 80px;overflow-y:auto;overflow-x:hidden;background:var(--bg-grad);width:100%;box-sizing:border-box;}
+.page{display:none;flex-direction:column;align-items:center;min-height:100vh;padding:calc(44px + env(safe-area-inset-top,0px)) 20px calc(80px + env(safe-area-inset-bottom,0px));overflow-y:auto;overflow-x:hidden;background:var(--bg-grad);width:100%;box-sizing:border-box;}
 .page.active{display:flex;}
 
 /* SETUP */
@@ -235,13 +250,14 @@ html{overflow-x:hidden;width:100%;height:100%;}body{height:100%;width:100%;min-h
 
 /* GAME */
 #game-screen{display:none;flex-direction:column;position:fixed;top:0;left:0;right:0;bottom:0;width:100%;max-width:100vw;overflow:hidden;}
-.game-header{display:flex;align-items:center;justify-content:center;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--bg2);flex-shrink:0;height:44px;}
+.game-header{display:flex;align-items:center;justify-content:center;padding:calc(10px + env(safe-area-inset-top,0px)) 16px 10px;border-bottom:1px solid var(--border);background:var(--bg2);flex-shrink:0;height:calc(44px + env(safe-area-inset-top,0px));}
 .game-header-title{font-family:var(--btn-font);font-size:12px;font-weight:700;letter-spacing:0.22em;color:var(--accent);text-shadow:0 0 10px var(--accent);text-transform:uppercase;}
 .players-wrap{
   flex:1;min-height:0;min-width:0;max-width:100%;
   display:grid;
   overflow:hidden;
   position:relative;
+  padding-bottom:calc(68px + env(safe-area-inset-bottom,0px));
 }
 .game-col{display:contents;} /* game-col n'est plus nécessaire, ignoré */
 
@@ -506,7 +522,7 @@ html{overflow-x:hidden;width:100%;height:100%;}body{height:100%;width:100%;min-h
 .elim-name{font-family:var(--btn-font);letter-spacing:0.1em;color:rgba(255,255,255,0.5);text-transform:uppercase;}
 
 /* BAR */
-#bar{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);padding:6px 6px 14px;gap:5px;z-index:100;align-items:center;justify-content:center;height:68px;}
+#bar{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);padding:6px 6px calc(14px + env(safe-area-inset-bottom,0px));gap:5px;z-index:100;align-items:center;justify-content:center;height:calc(68px + env(safe-area-inset-bottom,0px));}
 .bar-btn{flex:1;max-width:110px;padding:7px 4px 6px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--muted2);font-family:var(--btn-font);font-size:7px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;transition:all 0.15s;display:flex;flex-direction:column;align-items:center;gap:3px;}
 .bar-btn .btn-icon{font-size:18px;line-height:1;}
 .bar-btn .btn-label{line-height:1;}
@@ -555,7 +571,7 @@ html{overflow-x:hidden;width:100%;height:100%;}body{height:100%;width:100%;min-h
 .winner-btns{display:flex;flex-direction:column;gap:8px;}
 
 /* RECAP */
-.fullpage{position:fixed;inset:0;z-index:300;background:var(--bg);overflow-y:auto;padding-bottom:40px;}
+.fullpage{position:fixed;inset:0;z-index:300;background:var(--bg);overflow-y:auto;padding-bottom:calc(40px + env(safe-area-inset-bottom,0px));}
 .fullpage-header{display:flex;align-items:center;justify-content:space-between;padding:16px 16px 12px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:1;}
 .fullpage-title{font-family:var(--btn-font);font-size:14px;font-weight:700;color:var(--accent);text-shadow:0 0 10px var(--accent);letter-spacing:0.12em;text-transform:uppercase;}
 .fullpage-close{background:var(--surface);border:1px solid var(--border);color:var(--muted2);width:32px;height:32px;border-radius:var(--radius);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
