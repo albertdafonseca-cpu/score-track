@@ -17,6 +17,7 @@
 </script>
 <meta name="apple-mobile-web-app-title" content="ScoreTrack">
 <link rel="manifest" href="manifest-st.json">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%231a1a1a'/><line x1='14' y1='38' x2='50' y2='38' stroke='%233a3a3a' stroke-width='1.2'/><line x1='32' y1='11' x2='32' y2='27' stroke='%2366CCEE' stroke-width='2.5' stroke-linecap='round'/><line x1='24' y1='19' x2='40' y2='19' stroke='%2366CCEE' stroke-width='2.5' stroke-linecap='round'/><line x1='24' y1='51' x2='40' y2='51' stroke='%23EE6677' stroke-width='2.5' stroke-linecap='round'/></svg>">
 <title>ScoreTrack</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Share+Tech+Mono&family=Inter:wght@400;600;700;800&family=Press+Start+2P&family=Cinzel:wght@400;600;700&family=Bebas+Neue&display=swap');
@@ -410,7 +411,8 @@ html{overflow-x:hidden;width:100%;height:100%;}body{height:100%;width:100%;min-h
 [data-theme="mono-light"] .score.crit{color:#cc0000;text-shadow:none;}
 [data-theme="mono-light"] .delta-flash{color:#111;}
 
-.pcard.elim{opacity:0.25;}
+.pcard.elim{opacity:0.5;}
+.pcard.win{opacity:0.5;}
 .card-inner{position:absolute;top:0;left:0;display:flex;flex-direction:column;align-items:stretch;overflow:hidden;backface-visibility:hidden;}
 .card-inner::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:0.6;z-index:2;pointer-events:none;}
 
@@ -499,10 +501,10 @@ html{overflow-x:hidden;width:100%;height:100%;}body{height:100%;width:100%;min-h
 .delta-flash{position:absolute;top:5%;right:2%;font-family:var(--score-font);font-size:0;opacity:0;pointer-events:none;color:var(--accent);text-shadow:0 1px 4px rgba(0,0,0,0.8);}
 .delta-flash.go{animation:flashUp 0.9s ease-out forwards;}
 @keyframes flashUp{0%{opacity:1;transform:translateY(0)}70%{opacity:1}100%{opacity:0;transform:translateY(-3vmin)}}
-.elim-tag{position:absolute;inset:0;z-index:4;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;background:rgba(0,0,0,0.88);gap:0.8em;}
-.elim-icon{font-size:8vmin;line-height:1;}
-.elim-label{font-family:var(--btn-font);font-size:clamp(10px,3.5vmin,22px);font-weight:700;letter-spacing:0.22em;color:#fff;text-transform:uppercase;opacity:0.9;}
-.elim-name{font-family:var(--btn-font);font-size:clamp(8px,2.5vmin,16px);letter-spacing:0.1em;color:rgba(255,255,255,0.5);text-transform:uppercase;}
+.elim-tag{position:absolute;inset:0;z-index:4;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;background:rgba(0,0,0,0.85);gap:0.15em;}
+.elim-icon{line-height:1;}
+.elim-label{font-family:var(--btn-font);font-weight:700;letter-spacing:0.22em;color:#fff;text-transform:uppercase;opacity:0.9;}
+.elim-name{font-family:var(--btn-font);letter-spacing:0.1em;color:rgba(255,255,255,0.5);text-transform:uppercase;}
 
 /* BAR */
 #bar{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);padding:6px 6px 14px;gap:5px;z-index:100;align-items:center;justify-content:center;height:68px;}
@@ -521,7 +523,8 @@ html{overflow-x:hidden;width:100%;height:100%;}body{height:100%;width:100%;min-h
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 .modal-overlay:not(.hidden) .modal-box{animation:slideUp 0.22s cubic-bezier(0.32,0.72,0,1) both;}
 .modal-overlay:not(.hidden) .simple-modal-box{animation:fadeIn 0.18s ease both;}
-.modal-box{background:var(--bg2);border:1px solid var(--border);border-radius:16px 16px 0 0;padding:24px 20px 36px;width:100%;max-width:480px;box-shadow:var(--modal-glow);}
+.modal-box{background:var(--bg2);border:1px solid var(--border);border-radius:16px 16px 0 0;padding:0;width:100%;max-width:480px;box-shadow:var(--modal-glow);overflow:hidden;}
+.modal-content-rotatable{padding:24px 20px 36px;transition:transform 0.15s ease;transform-origin:center center;}
 .modal-handle{width:40px;height:3px;background:var(--border);border-radius:2px;margin:0 auto 20px;}
 .modal-title{font-family:var(--btn-font);font-size:14px;font-weight:700;color:var(--accent);margin-bottom:6px;text-align:center;text-shadow:0 0 10px var(--accent);letter-spacing:0.1em;text-transform:uppercase;}
 .modal-player{font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--muted2);text-align:center;margin-bottom:20px;}
@@ -561,15 +564,16 @@ html{overflow-x:hidden;width:100%;height:100%;}body{height:100%;width:100%;min-h
 .recap-player-header{padding:12px 14px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
 .recap-player-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
 .recap-player-name{font-family:var(--btn-font);font-size:12px;font-weight:700;color:var(--text);letter-spacing:0.06em;}
-.recap-entry{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.04);}
-.recap-entry-rank{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--muted2);}
-.recap-entry-detail{font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--text);margin-top:2px;}
+.recap-status{font-family:var(--btn-font);font-size:10px;font-weight:700;letter-spacing:0.06em;margin-left:auto;padding:2px 8px;border-radius:20px;}
+.recap-status.win{color:var(--accent);border:1px solid var(--accent);}
+.recap-status.elim{color:var(--muted2);border:1px solid var(--border);}
+.recap-entry{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,0.04);}
+.recap-entry-rank{font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--muted2);}
 .recap-delta{font-family:'Share Tech Mono',monospace;font-size:22px;}
 .recap-delta.pos{color:var(--green);text-shadow:0 0 8px var(--green);}
 .recap-delta.neg{color:var(--red);text-shadow:0 0 8px var(--red);}
-.recap-total{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(0,255,200,0.03);}
-.recap-total-label{font-family:var(--btn-font);font-size:7px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted2);}
-.recap-total-val{font-family:'Share Tech Mono',monospace;font-size:20px;color:var(--accent2);text-shadow:0 0 8px var(--accent2);}
+.recap-total{display:flex;align-items:center;justify-content:flex-end;padding:10px 14px;background:rgba(0,255,200,0.03);}
+.recap-total-val{font-family:'Share Tech Mono',monospace;font-size:26px;color:var(--accent2);text-shadow:0 0 8px var(--accent2);}
 .hidden{display:none!important;}
 
 /* PRÉRÉGLAGES DE JEUX */
@@ -578,7 +582,7 @@ html{overflow-x:hidden;width:100%;height:100%;}body{height:100%;width:100%;min-h
 .preset-card:active{transform:scale(0.97);}
 .preset-card.on{border-color:var(--accent);box-shadow:0 0 12px color-mix(in srgb,var(--accent) 30%,transparent);}
 .preset-card-name{font-family:var(--btn-font);font-size:10px;font-weight:700;color:var(--accent);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px;}
-.preset-card-detail{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--muted2);}
+.preset-card-detail{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--muted2);line-height:1.6;}
 /* PROFILS JOUEURS */
 .profiles-list{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;min-height:0;}
 .profile-chip{background:var(--chip-bg);border:1.5px solid var(--border);border-radius:20px;padding:5px 10px 5px 12px;font-family:var(--btn-font);font-size:11px;color:var(--chip-text);cursor:pointer;display:flex;align-items:center;gap:5px;transition:all 0.15s;}
@@ -637,6 +641,28 @@ html{overflow-x:hidden;width:100%;height:100%;}body{height:100%;width:100%;min-h
 @keyframes splashBounce{0%,100%{transform:scale(0.9);opacity:0.5}50%{transform:scale(1.05);opacity:1}}
 .splash-title{font-family:'Orbitron',monospace;font-size:22px;font-weight:700;letter-spacing:0.15em;color:#00ffe0;text-shadow:0 0 16px #00ffe0;}
 .splash-sub{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:0.2em;color:#4a9880;text-transform:uppercase;}
+
+/* ── OBJECTIF ── */
+.objectif-row{display:flex;gap:6px;margin-bottom:8px;width:100%;}
+.objectif-chip{flex:1;padding:9px 4px;background:var(--chip-bg);border:1.5px solid transparent;border-radius:var(--radius);font-family:var(--btn-font);font-size:9px;font-weight:700;color:var(--chip-text);cursor:pointer;transition:all 0.15s;text-align:center;letter-spacing:0.06em;text-transform:uppercase;}
+.objectif-chip.on{background:var(--chip-on);border-color:var(--chip-on);color:var(--chip-on-text);box-shadow:0 0 12px color-mix(in srgb,var(--chip-on) 40%,transparent);}
+.objectif-input-row{display:flex;gap:8px;align-items:center;}
+#objectif-input{display:block;}
+
+/* ── BLOQUER PV ── */
+.bloquer-row{display:flex;gap:4px;margin-top:10px;width:100%;}
+.bloquer-chip{flex:1;padding:0 6px;height:34px;background:var(--chip-bg);border:1.5px solid transparent;border-radius:var(--radius);font-family:var(--btn-font);color:var(--chip-text);cursor:pointer;transition:all 0.15s;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:6px;overflow:hidden;}
+.bloquer-chip.on{background:var(--chip-on);border-color:var(--chip-on);color:var(--chip-on-text);box-shadow:0 0 10px color-mix(in srgb,var(--chip-on) 40%,transparent);}
+.bloquer-arrow{flex-shrink:0;display:inline-flex;align-items:center;}
+.bloquer-label{font-size:8px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;line-height:1;}
+.preset-arrow{font-size:16px;line-height:1;}
+.objectif-presets{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;margin-bottom:8px;}
+.elim-rank{font-family:var(--score-font);color:rgba(255,255,255,0.5);letter-spacing:0.1em;}
+.win-rank{font-family:var(--score-font);color:var(--accent);letter-spacing:0.1em;}
+.tag-score{font-family:var(--score-font);color:rgba(255,255,255,0.9);letter-spacing:0.05em;line-height:1;}
+.win-tag{position:absolute;inset:0;z-index:4;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;background:rgba(0,0,0,0.85);gap:0.15em;}
+.win-icon{line-height:1;}
+.win-label{font-family:var(--btn-font);font-weight:700;letter-spacing:0.2em;color:var(--accent);text-transform:uppercase;}
 </style>
 </head>
 <body>
@@ -650,7 +676,14 @@ html{overflow-x:hidden;width:100%;height:100%;}body{height:100%;width:100%;min-h
 <div id="setup-page" class="page active">
   <div class="logo">
     <button class="logo-gear" onclick="showSettings()">⚙️</button>
-    <div class="logo-mark">🎯</div>
+    <div class="logo-mark">
+      <svg width="36" height="36" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+        <line x1="14" y1="38" x2="50" y2="38" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+        <line x1="32" y1="11" x2="32" y2="27" stroke="#66CCEE" stroke-width="4" stroke-linecap="round"/>
+        <line x1="24" y1="19" x2="40" y2="19" stroke="#66CCEE" stroke-width="4" stroke-linecap="round"/>
+        <line x1="24" y1="51" x2="40" y2="51" stroke="#EE6677" stroke-width="4" stroke-linecap="round"/>
+      </svg>
+    </div>
     <div class="logo-name">ScoreTrack</div>
     <div class="logo-sub">Compteur universel</div>
   </div>
@@ -682,21 +715,30 @@ html{overflow-x:hidden;width:100%;height:100%;}body{height:100%;width:100%;min-h
     <input class="points-input" id="points-custom" type="number" inputmode="numeric" placeholder="Autre valeur…" min="0">
   </div>
   <div class="setup-section">
-    <span class="setup-label">Points maximum</span>
-    <div class="points-presets" id="max-presets">
-      <div class="points-chip" data-val="10">10</div>
-      <div class="points-chip" data-val="20">20</div>
-      <div class="points-chip" data-val="40">40</div>
-      <div class="points-chip" data-val="50">50</div>
-      <div class="points-chip" data-val="100">100</div>
-      <div class="points-chip" data-val="200">200</div>
+    <span class="setup-label">Sens du jeu</span>
+    <div class="bloquer-row">
+      <div class="bloquer-chip on" id="blk-none" onclick="selectBloquer('none')"><span class="bloquer-arrow"><svg width="16" height="20" viewBox="0 0 22 28" fill="none" xmlns="http://www.w3.org/2000/svg"><line x1="11" y1="2" x2="11" y2="26" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><polyline points="5,8 11,2 17,8" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/><polyline points="5,20 11,26 17,20" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></span><span class="bloquer-label">Libre</span></div>
+      <div class="bloquer-chip" id="blk-min" onclick="selectBloquer('min')"><span class="bloquer-arrow"><svg width="16" height="20" viewBox="0 0 22 28" fill="none" xmlns="http://www.w3.org/2000/svg"><line x1="11" y1="4" x2="11" y2="24" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><polyline points="5,10 11,4 17,10" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="3" y1="25" x2="19" y2="25" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></span><span class="bloquer-label">À la hausse</span></div>
+      <div class="bloquer-chip" id="blk-max" onclick="selectBloquer('max')"><span class="bloquer-arrow"><svg width="16" height="20" viewBox="0 0 22 28" fill="none" xmlns="http://www.w3.org/2000/svg"><line x1="11" y1="4" x2="11" y2="24" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><polyline points="5,18 11,24 17,18" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="3" y1="3" x2="19" y2="3" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></span><span class="bloquer-label">À la baisse</span></div>
     </div>
-    <input class="points-input" id="max-custom" type="number" inputmode="numeric" placeholder="Sans limite">
   </div>
   <div class="setup-section">
-    <div class="toggle-row">
-      <div><div class="toggle-label">Scores négatifs</div><div class="toggle-sub">Permettre de descendre sous 0</div></div>
-      <button class="toggle-switch" id="neg-toggle" onclick="toggleNegative()"></button>
+    <span class="setup-label">Objectif</span>
+    <div class="objectif-row">
+      <div class="objectif-chip on" id="obj-none" onclick="selectObjectif('none')">No limit</div>
+      <div class="objectif-chip" id="obj-elim" onclick="selectObjectif('elim')">Élimination</div>
+      <div class="objectif-chip" id="obj-win"  onclick="selectObjectif('win')">Victoire</div>
+    </div>
+    <div id="objectif-input">
+      <div class="objectif-presets" id="objectif-presets">
+        <div class="points-chip" data-oval="0"   onclick="selectObjectifPreset(0)">0</div>
+        <div class="points-chip" data-oval="10"  onclick="selectObjectifPreset(10)">10</div>
+        <div class="points-chip" data-oval="20"  onclick="selectObjectifPreset(20)">20</div>
+        <div class="points-chip" data-oval="50"  onclick="selectObjectifPreset(50)">50</div>
+        <div class="points-chip" data-oval="100" onclick="selectObjectifPreset(100)">100</div>
+        <div class="points-chip" data-oval="150" onclick="selectObjectifPreset(150)">150</div>
+      </div>
+      <input class="points-input" id="objectif-custom" type="number" inputmode="numeric" placeholder="Autre valeur…">
     </div>
   </div>
   <button class="go-btn" id="go-btn" disabled onclick="showNamesScreen()">Suivant →</button>
@@ -779,18 +821,20 @@ html{overflow-x:hidden;width:100%;height:100%;}body{height:100%;width:100%;min-h
 
 <div class="modal-overlay hidden" id="score-modal">
   <div class="modal-box">
-    <div class="modal-handle"></div>
-    <div class="modal-title">Modifier les points</div>
-    <div class="modal-player" id="score-modal-player"></div>
-    <div class="modal-score-display pos" id="score-modal-display">+0</div>
-    <div class="modal-sign-row">
-      <button class="sign-btn minus" id="sign-minus" onclick="setSign(-1)">－ Perte</button>
-      <button class="sign-btn plus active" id="sign-plus" onclick="setSign(1)">＋ Gain</button>
-    </div>
-    <div class="modal-keypad" id="modal-keypad"></div>
-    <div class="modal-confirm-row">
-      <button class="modal-btn secondary" onclick="closeScoreModal()">Annuler</button>
-      <button class="modal-btn primary" onclick="confirmScoreModal()">Appliquer</button>
+    <div class="modal-content-rotatable" id="modal-content-rotatable">
+      <div class="modal-handle"></div>
+      <div class="modal-title">Modifier les points</div>
+      <div class="modal-player" id="score-modal-player"></div>
+      <div class="modal-score-display pos" id="score-modal-display">+0</div>
+      <div class="modal-sign-row">
+        <button class="sign-btn minus" id="sign-minus" onclick="setSign(-1)">－ Perte</button>
+        <button class="sign-btn plus active" id="sign-plus" onclick="setSign(1)">＋ Gain</button>
+      </div>
+      <div class="modal-keypad" id="modal-keypad"></div>
+      <div class="modal-confirm-row">
+        <button class="modal-btn secondary" onclick="closeScoreModal()">Annuler</button>
+        <button class="modal-btn primary" onclick="confirmScoreModal()">Appliquer</button>
+      </div>
     </div>
   </div>
 </div>
@@ -864,21 +908,44 @@ const COLORS=[
 
 // Préréglages de jeux
 const GAME_PRESETS=[
-  {name:'Loi du Milieu',detail:'6j · 40pts · élim à 0', players:6,  start:40,  max:40,  neg:false},
-  {name:'Poker',     detail:'6j · 1000 jetons',       players:6,  start:1000,max:0,   neg:false},
-  {name:'Uno',       detail:'4j · 500pts',             players:4,  start:500, max:0,   neg:false},
-  {name:'Bohnanza',  detail:'4j · 0 départ',           players:4,  start:0,   max:0,   neg:false},
-  {name:'Magic',     detail:'4j · 20 PV · élim à 0',   players:4,  start:20,  max:0,   neg:false},
-  {name:'Skyjo',     detail:'4j · scores négatifs',    players:4,  start:0,   max:0,   neg:true},
+  {name:'Loi du Milieu',
+   detail:'6 joueurs · 40 Influence',
+   sub:'<span class="preset-arrow">↧</span> À la baisse<br>Élimination à 0',
+   players:6, start:40,   bloquer:'max', objectifMode:'elim', objectifVal:0},
+  {name:'Poker',
+   detail:'6 joueurs · 1000 jetons',
+   sub:'<span class="preset-arrow">↕</span> Libre<br>Élimination à 0',
+   players:6, start:1000, bloquer:'none', objectifMode:'elim', objectifVal:0},
+  {name:'Uno',
+   detail:'4 joueurs · 0 pt',
+   sub:'<span class="preset-arrow">↥</span> À la hausse<br>Victoire à 500',
+   players:4, start:0,    bloquer:'min', objectifMode:'win',  objectifVal:500},
+  {name:'Catan',
+   detail:'4 joueurs · 0 pt',
+   sub:'<span class="preset-arrow">↥</span> À la hausse<br>Victoire à 10',
+   players:4, start:0,    bloquer:'min', objectifMode:'win', objectifVal:10},
+  {name:'Magic',
+   detail:'4 joueurs · 20 PV',
+   sub:'<span class="preset-arrow">↧</span> À la baisse<br>Élimination à 0',
+   players:4, start:20,   bloquer:'max', objectifMode:'elim', objectifVal:0},
+  {name:'Skyjo',
+   detail:'4 joueurs · 0 pt',
+   sub:'<span class="preset-arrow">↕</span> Libre<br>Élimination à 100',
+   players:4, start:0,    bloquer:'none',objectifMode:'elim', objectifVal:100, allowNeg:true},
 ];
 
 let numPlayers=0,startPoints=0,maxPoints=Infinity,allowNeg=false;
+let elimPoints=null,winPoints=null,objectifMode='none';
+let bloquerMode='none';
+let rankCounter=0;
 let players=[],seatOrder=[],undoStack=[],history=[],actionCounter=0,groupTimers={};
 const GROUP_DELAY=1500;
 let modalPlayerIdx=-1,modalValue='0',modalSign=1;
-let settings={theme:'cyber',defPlayers:0,defStart:0,defMax:0,defNeg:false};
+let settings={theme:'cyber',defPlayers:0,defStart:0,defMax:0,defNeg:false,defObjectifMode:'none',defObjectifVal:null};
 let selectedTheme='cyber',defPlayers=0,defStart=-1,defMax=0,defNeg=false;
 let elimPending=-1; // index joueur en attente de confirmation d'élimination
+let winPending=-1;
+let lastGameConfig=null; // réglages de la dernière partie lancée
 
 // ── FORMATAGE ─────────────────────────────────────────────────────
 function fmtNum(n){
@@ -896,7 +963,7 @@ function loadSettings(){
   defMax=settings.defMax||0;
   defNeg=settings.defNeg||false;
   if(localStorage.getItem('scoretrack_save')){
-    document.getElementById('restore-banner').classList.remove('hidden');
+    restoreGame(); return; // reprendre directement
   }
   applyDefaults();
 }
@@ -905,7 +972,6 @@ function applyDefaults(){
   if(defStart>=0)selectStartPreset(defStart);
   if(defMax>0)selectMaxPreset(defMax);
   allowNeg=defNeg;
-  document.getElementById('neg-toggle').classList.toggle('on',allowNeg);
   document.querySelectorAll('.preset-card').forEach(c=>c.classList.remove('on'));
 }
 function applyTheme(id){document.documentElement.setAttribute('data-theme',id==='cyber'?'':id);selectedTheme=id;}
@@ -923,6 +989,8 @@ function saveGame(){
     localStorage.setItem('scoretrack_save',JSON.stringify({
       players,seatOrder,history,actionCounter,
       numPlayers,startPoints,maxPoints:maxPoints===Infinity?null:maxPoints,allowNeg,
+      elimPoints,winPoints,objectifMode,bloquerMode,rankCounter,
+      lastGameConfig,
       ts:Date.now()
     }));
   }catch(e){}
@@ -935,6 +1003,9 @@ function restoreGame(){
     numPlayers=s.numPlayers;startPoints=s.startPoints;
     maxPoints=s.maxPoints===null?Infinity:s.maxPoints;
     allowNeg=s.allowNeg||false;
+    elimPoints=s.elimPoints??null;winPoints=s.winPoints??null;objectifMode=s.objectifMode||'none';
+    bloquerMode=s.bloquerMode||'none';rankCounter=s.rankCounter||0;
+    if(s.lastGameConfig)lastGameConfig=s.lastGameConfig;
     undoStack=[];groupTimers={};
     document.getElementById('restore-banner').classList.add('hidden');
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -965,15 +1036,17 @@ function renderPresets(){
   const g=document.getElementById('presets-grid');g.innerHTML='';
   GAME_PRESETS.forEach((p,idx)=>{
     const c=document.createElement('div');c.className='preset-card';
-    c.innerHTML=`<div class="preset-card-name">${p.name}</div><div class="preset-card-detail">${p.detail}</div>`;
+    c.innerHTML=`<div class="preset-card-name">${p.name}</div><div class="preset-card-detail">${p.detail}${p.sub?'<br>'+p.sub:''}</div>`;
     c.onclick=()=>{
       document.querySelectorAll('.preset-card').forEach(x=>x.classList.remove('on'));
       c.classList.add('on');
       selectPlayer(p.players);
       selectStartPreset(p.start);
-      if(p.max>0)selectMaxPreset(p.max);else{maxPoints=Infinity;document.querySelectorAll('#max-presets .points-chip').forEach(x=>x.classList.remove('on'));}
-      allowNeg=p.neg;
-      document.getElementById('neg-toggle').classList.toggle('on',allowNeg);
+      selectBloquer(p.bloquer||'none');
+      allowNeg=p.allowNeg||false;
+      selectObjectif(p.objectifMode||'none');
+      setObjectifFromPreset(p.objectifMode||'none', p.objectifVal??null);
+      checkGoBtn();
     };
     g.appendChild(c);
   });
@@ -1012,21 +1085,104 @@ function selectStartPreset(v){
   else{document.getElementById('points-custom').value=v>0?v:'';}
   checkGoBtn();updateMaxChips();
 }
-function selectMaxPreset(v){maxPoints=v>0?v:Infinity;document.querySelectorAll('#max-presets .points-chip').forEach(c=>{c.classList.toggle('on',parseInt(c.dataset.val)===v);});}
-function toggleNegative(){allowNeg=!allowNeg;document.getElementById('neg-toggle').classList.toggle('on',allowNeg);}
-
-function updateMaxChips(){
-  document.querySelectorAll('#max-presets .points-chip').forEach(c=>{
-    const v=parseInt(c.dataset.val);
-    if(v<startPoints){c.classList.add('disabled');if(c.classList.contains('on')){c.classList.remove('on');maxPoints=Infinity;document.getElementById('max-custom').value='';}}
-    else c.classList.remove('disabled');
+function selectMaxPreset(v){maxPoints=v>0?v:Infinity;} // max-presets supprimé
+function selectObjectifPreset(val){
+  document.querySelectorAll('#objectif-presets .points-chip').forEach(c=>{
+    c.classList.toggle('on', parseInt(c.dataset.oval)===val);
   });
-  const mc=document.getElementById('max-custom');const v=parseInt(mc.value);
-  if(!isNaN(v)&&v>0&&v<startPoints){mc.style.borderColor='var(--red)';maxPoints=Infinity;mc.value='';}else mc.style.borderColor='';
+  document.getElementById('objectif-custom').value=val;
+  checkGoBtn();
 }
+function selectBloquer(mode){
+  bloquerMode=mode;
+  ['none','min','max'].forEach(m=>{
+    document.getElementById('blk-'+m).classList.toggle('on',m===mode);
+  });
+}
+
+// ── OBJECTIF ──────────────────────────────────────────────────────
+function selectObjectif(mode){
+  objectifMode=mode;
+  ['none','elim','win'].forEach(m=>{
+    document.getElementById('obj-'+m).classList.toggle('on',m===mode);
+  });
+  const inp=document.getElementById('objectif-input');
+  const custom=document.getElementById('objectif-custom');
+  const chips=document.querySelectorAll('#objectif-presets .points-chip');
+  if(mode==='none'){
+    elimPoints=null;winPoints=null;maxPoints=Infinity;allowNeg=false;
+    chips.forEach(c=>{c.classList.remove('on');c.style.pointerEvents='none';c.style.opacity='0.25';});
+    custom.value='';custom.disabled=true;custom.placeholder='—';
+  } else {
+    chips.forEach(c=>{c.style.pointerEvents='';c.style.opacity='';});
+    custom.disabled=false;
+    // Activer 0 par défaut seulement si aucun bouton n'est déjà actif
+    const alreadyOn=[...chips].find(c=>c.classList.contains('on'));
+    if(!alreadyOn&&!custom.value){
+      const chip0=document.querySelector('#objectif-presets .points-chip[data-oval="0"]');
+      if(chip0)chip0.classList.add('on');
+      custom.value='0';
+    }
+    custom.placeholder='Autre valeur…';
+  }
+  checkGoBtn();
+}
+function getObjectifVal(){
+  const v=parseInt(document.getElementById('objectif-custom').value);
+  return isNaN(v)?null:v;
+}
+function applyObjectif(){
+  elimPoints=null;winPoints=null;maxPoints=Infinity;allowNeg=false;
+  if(bloquerMode==='min'){allowNeg=false;}
+  if(bloquerMode==='max'){maxPoints=startPoints;}
+  if(objectifMode==='none')return;
+  const val=getObjectifVal();if(val===null)return;
+  if(objectifMode==='elim'){
+    elimPoints=val;
+    if(val<0)allowNeg=true;
+  } else {
+    winPoints=val;
+    if(bloquerMode!=='max')maxPoints=val;
+  }
+}
+function setObjectifFromPreset(mode,val){
+  objectifMode=mode;
+  ['none','elim','win'].forEach(m=>{
+    document.getElementById('obj-'+m).classList.toggle('on',m===mode);
+  });
+  // Réinitialiser toutes les chips de valeur
+  document.querySelectorAll('#objectif-presets .points-chip').forEach(c=>c.classList.remove('on'));
+  // Toujours réactiver les chips et le champ
+  document.querySelectorAll('#objectif-presets .points-chip').forEach(c=>{
+    c.classList.remove('on');c.style.pointerEvents='';c.style.opacity='';
+  });
+  const custom=document.getElementById('objectif-custom');
+  custom.disabled=false;
+  if(mode==='none'){
+    custom.value='';custom.placeholder='Valeur…';
+  } else {
+    custom.placeholder='Autre valeur…';
+    if(val!==null&&val!==undefined){
+      custom.value=val;
+      const chip=document.querySelector(`#objectif-presets .points-chip[data-oval="${val}"]`);
+      if(chip)chip.classList.add('on');
+    }
+  }
+}
+
+function toggleNegative(){allowNeg=!allowNeg;}
+
+function updateMaxChips(){} // obsolète
 function checkGoBtn(){
-  const ok=numPlayers>=1&&startPoints>=0;const btn=document.getElementById('go-btn');
-  btn.disabled=!ok;btn.textContent=ok?`Suivant → (${numPlayers}j · ${fmtNum(startPoints)}pts)`:'Suivant →';
+  const objOk=objectifMode==='none'||getObjectifVal()!==null;
+  const ok=numPlayers>=1&&startPoints>=0&&objOk;
+  const btn=document.getElementById('go-btn');
+  btn.disabled=!ok;
+  if(ok){
+    let label=`Suivant → (${numPlayers}j · ${fmtNum(startPoints)}pts`;
+    if(objectifMode!=='none'&&getObjectifVal()!==null)label+=` · ${objectifMode==='elim'?'élim':'win'} à ${fmtNum(getObjectifVal())}`;
+    btn.textContent=label+')';
+  } else {btn.textContent='Suivant →';}
 }
 
 // ── PROFILS JOUEURS ───────────────────────────────────────────────
@@ -1091,7 +1247,7 @@ function showNamesScreen(){
   const effectiveW=isLateral?Math.min(cardVisW,cardVisH):cardVisW;
   const fontSize=effectiveW*0.13*0.84;
   const charWidth=fontSize*0.62;
-  const maxLen=Math.max(3,Math.min(18,Math.floor(effectiveW*0.84/charWidth)));
+  const maxLen=Math.max(3,Math.min(10,Math.floor(effectiveW*0.84/charWidth)));
 
   for(let i=0;i<numPlayers;i++){
     const row=document.createElement('div');row.className='name-row';
@@ -1121,9 +1277,12 @@ function clearSavedNames(){
 
 // ── DÉMARRAGE PARTIE ──────────────────────────────────────────────
 function startGame(){
+  applyObjectif();
+  // Mémoriser les réglages de cette partie pour le reset
+  lastGameConfig={numPlayers,startPoints,objectifMode,objectifVal:getObjectifVal(),bloquerMode,allowNeg};
   const inputs=document.querySelectorAll('.name-input');
   players=Array.from({length:numPlayers},(_,i)=>({playerName:inputs[i]?.value.trim()||'',score:startPoints,eliminated:false}));
-  seatOrder=players.map((_,i)=>i);undoStack=[];history=[];actionCounter=0;groupTimers={};elimPending=-1;
+  seatOrder=players.map((_,i)=>i);undoStack=[];history=[];actionCounter=0;groupTimers={};elimPending=-1;rankCounter=0;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('game-screen').style.display='flex';
   document.getElementById('bar').style.display='flex';
@@ -1294,6 +1453,7 @@ function buildCard(pi,rot){
   if(pi===undefined||pi===null||!players[pi])return document.createElement('div');
   const p=players[pi];
   const card=document.createElement('div');card.className=`pcard color-${(pi%10)+1} ${rot}${p.eliminated?' elim':''}`;card.id=`card-${pi}`;
+  p.rot=rot; // mémoriser la rotation pour le modal
   const inner=document.createElement('div');inner.className='card-inner';inner.id=`inner-${pi}`;
   const cls=scoreClass(p.score);
   const nameHtml=p.playerName?`<div class="pplayer">${p.playerName}</div>`:`<span class="pplayer-ghost"></span>`;
@@ -1323,16 +1483,46 @@ function buildCard(pi,rot){
   zone.addEventListener('touchcancel',()=>{if(holdTimer){clearTimeout(holdTimer);holdTimer=null;}});
   zone.addEventListener('click',e=>adjust(pi,getIsPlus(e,false)?+1:-1,zone));
 
+  // Désactiver les interactions pour les cartes hors jeu
+  if(p.winner||p.eliminated){
+    zone.style.pointerEvents='none';
+    zone.removeEventListener('touchstart',()=>{});
+    zone.removeEventListener('touchend',()=>{});
+    zone.removeEventListener('click',()=>{});
+    // Masquer le delta-flash
+    const df=zone.querySelector('.delta-flash');
+    if(df)df.style.display='none';
+  }
+
   inner.appendChild(zone);
-  if(p.eliminated){
-    // Masquer le score et les signes
+  if(p.winner&&!p.eliminated){
     const scoreWrap=zone.querySelector('.score-wrap');
     if(scoreWrap)scoreWrap.style.display='none';
     const sm=zone.querySelector('.tap-sign-minus');const sp=zone.querySelector('.tap-sign-plus');
     if(sm)sm.style.display='none';if(sp)sp.style.display='none';
+    const dfW=zone.querySelector('.delta-flash');
+    if(dfW)dfW.style.display='none';
+    const ppW=zone.querySelector('.pplayer');
+    if(ppW)ppW.style.display='none'; // masquer le prénom de la zone
+    card.classList.add('win');
+    const t=document.createElement('div');t.className='win-tag';
+    const winScore=p.finalScore!==undefined?p.finalScore:null;
+    const scoreStr=winScore!==null?`<div class="tag-score">${fmtNum(winScore)}</div>`:'';
+    const nameStr=p.playerName?`<div class="elim-name">${p.playerName}</div>`:'';
+    t.innerHTML=`<div class="win-icon">🏆</div><div class="win-label">Vainqueur</div>${nameStr}<div class="win-rank">#${p.winRank||'?'}</div>${scoreStr}`;
+    inner.appendChild(t);
+  } else if(p.eliminated){
+    const scoreWrap=zone.querySelector('.score-wrap');
+    if(scoreWrap)scoreWrap.style.display='none';
+    const sm=zone.querySelector('.tap-sign-minus');const sp=zone.querySelector('.tap-sign-plus');
+    if(sm)sm.style.display='none';if(sp)sp.style.display='none';
+    const ppE=zone.querySelector('.pplayer');
+    if(ppE)ppE.style.display='none'; // masquer le prénom de la zone
     const t=document.createElement('div');t.className='elim-tag';
     const nameStr=p.playerName?`<div class="elim-name">${p.playerName}</div>`:'';
-    t.innerHTML=`<div class="elim-icon">💀</div><div class="elim-label">Éliminé</div>${nameStr}`;
+    const rankStr=p.elimRank?`<div class="elim-rank">#${p.elimRank}</div>`:'';
+    const elimScore=p.finalScore!==undefined?p.finalScore:p.score;
+    t.innerHTML=`<div class="elim-icon">💀</div><div class="elim-label">Éliminé</div>${nameStr}${rankStr}<div class="tag-score">${fmtNum(elimScore)}</div>`;
     inner.appendChild(t);
   }
   card.appendChild(inner);return card;
@@ -1371,17 +1561,27 @@ function fitTexts(){
     const scoreStr=sc?sc.textContent||'0':'0';
     const nChars=scoreStr.replace(/\s/g,'').length||1;
     const charRatio=nChars<=2?0.55:nChars<=3?0.42:nChars<=4?0.32:nChars<=5?0.26:0.22;
-    const scoreSz=Math.max(12,Math.min(ref*charRatio,cap));
-    if(sc)sc.style.fontSize=scoreSz+'px';
+    // Contraindre par la largeur disponible
+    // La largeur utile pour le score est usW (moins les signes +/- sur les côtés)
+    const scoreAvailW=usW*0.80;
+    const maxByWidth=scoreAvailW/(nChars*0.72);
+    let scoreSz=Math.max(12,Math.min(ref*charRatio,cap,maxByWidth));
+    // Vérification après rendu : si le score déborde, réduire itérativement
+    if(sc){
+      sc.style.fontSize=scoreSz+'px';
+      let tries=0;
+      while(sc.scrollWidth>usW*0.90&&scoreSz>12&&tries++<8){
+        scoreSz=Math.max(12,scoreSz*0.85);
+        sc.style.fontSize=scoreSz+'px';
+      }
+    }
     if(df)df.style.fontSize=Math.max(8,scoreSz*0.42)+'px';
     const signSz=Math.max(10,Math.min(ref*0.18,Math.min(ref*0.18,scoreSz*0.55)));
     if(sm)sm.style.fontSize=signSz+'px';
     if(sp)sp.style.fontSize=signSz+'px';
-    const nameSz=Math.max(8,Math.min(ref*0.13,32));
+    let nameSz=Math.max(8,Math.min(ref*0.13,32));
     if(pl){
-      pl.style.fontSize=nameSz+'px';
       pl.style.whiteSpace='nowrap';
-      // Cartes latérales : le nom s'étend sur la grande dimension (visH)
       if(isLat){
         pl.style.maxWidth=Math.round(visH*0.82)+'px';
         pl.style.width=Math.round(visH*0.82)+'px';
@@ -1389,8 +1589,34 @@ function fitTexts(){
         pl.style.maxWidth='90%';
         pl.style.width='90%';
       }
+      // Réduction itérative si le nom déborde
+      pl.style.fontSize=nameSz+'px';
+      let nTries=0;
+      while(pl.scrollWidth>pl.offsetWidth+2&&nameSz>7&&nTries++<8){
+        nameSz=Math.max(7,nameSz*0.85);
+        pl.style.fontSize=nameSz+'px';
+      }
     }
     if(ghost)ghost.style.height=Math.max(8,nameSz)+'px';
+
+    // Sizing des tags éliminé/vainqueur basé sur ref
+    const tag=card.querySelector('.elim-tag,.win-tag');
+    if(tag){
+      const iconEl=tag.querySelector('.elim-icon,.win-icon');
+      const labelEl=tag.querySelector('.elim-label,.win-label');
+      const nameEl=tag.querySelector('.elim-name');
+      const rankEl=tag.querySelector('.elim-rank,.win-rank');
+      const scoreEl=tag.querySelector('.tag-score');
+      const iconSz=Math.max(10,Math.min(ref*0.18,36));
+      const labelSz=Math.max(8,Math.min(ref*0.1,18));
+      const subSz=Math.max(7,Math.min(ref*0.075,13));
+      const scoreSzTag=Math.max(10,Math.min(ref*0.22,32));
+      if(iconEl)iconEl.style.fontSize=iconSz+'px';
+      if(labelEl)labelEl.style.fontSize=labelSz+'px';
+      if(nameEl)nameEl.style.fontSize=subSz+'px';
+      if(rankEl)rankEl.style.fontSize=subSz+'px';
+      if(scoreEl)scoreEl.style.fontSize=scoreSzTag+'px';
+    }
   });
 }
 
@@ -1416,29 +1642,47 @@ window.addEventListener('orientationchange',()=>setTimeout(onResize,200));
 
 // ── ADJUST ────────────────────────────────────────────────────────
 function adjust(i,delta,zone){
-  const p=players[i];if(p.eliminated)return;
-  const minVal=allowNeg?-Infinity:0;
-  const newScore=Math.min(maxPoints===Infinity?Infinity:maxPoints,Math.max(minVal,p.score+delta));
+  const p=players[i];if(p.eliminated||p.winner)return;
+  const minVal=bloquerMode==='min'?startPoints:(allowNeg||objectifMode==='none'?-Infinity:0);
+  const capMax=bloquerMode==='max'?startPoints:(maxPoints===Infinity?Infinity:maxPoints);
+  const rawScore=p.score+delta; // score brut avant clamp
+  const newScore=Math.min(capMax,Math.max(minVal,rawScore));
   const realDelta=newScore-p.score;
-  // Si pas de mouvement et score déjà à la limite basse → feedback
   if(realDelta===0){
-    if(!allowNeg&&p.score<=0){
-      flashZone(zone,'flash-neg');
-      if(navigator.vibrate)navigator.vibrate([30,20,30]);
-    }
+    flashZone(zone,'flash-neg');
+    if(navigator.vibrate)navigator.vibrate([30,20,30]);
     return;
   }
-  saveUndo();p.score=newScore;
+  const rawDelta=rawScore-(newScore-realDelta); // rawScore - prevScore
+  saveUndo();p.score=newScore;p.rawScore=rawScore;
   updateDisplay(i,zone,realDelta);
   flashZone(zone,realDelta>0?'flash-pos':'flash-neg');
-  logGrouped(i,realDelta);
+  logGrouped(i,rawDelta);
 }
 
 function scoreClass(score){
-  if(startPoints>0){
-    if(score<=0)return 'crit';
-    if(score<=Math.floor(startPoints*0.25))return 'low';
-  } else if(score<0){return 'crit';}
+  if(elimPoints!==null){
+    // Élimination par le bas (score descend vers elimPoints)
+    if(elimPoints<startPoints){
+      const range=startPoints-elimPoints;
+      if(score<=elimPoints)return 'crit';
+      if(score<=elimPoints+Math.floor(range*0.25))return 'low';
+    }
+    // Élimination par le haut (score monte vers elimPoints, ex: Skyjo)
+    if(elimPoints>startPoints){
+      const range=elimPoints-startPoints;
+      if(score>=elimPoints)return 'crit';
+      if(score>=elimPoints-Math.floor(range*0.25))return 'low';
+    }
+  } else {
+    // Pas de coloration en mode No limit
+    if(objectifMode==='none')return '';
+    // Comportement original
+    if(startPoints>0){
+      if(score<=0)return 'crit';
+      if(score<=Math.floor(startPoints*0.25))return 'low';
+    } else if(score<0){return 'crit';}
+  }
   return '';
 }
 
@@ -1450,33 +1694,63 @@ function updateDisplay(i,zone,delta){
   sc.textContent=fmtNum(p.score);
   sc.className='score '+scoreClass(p.score);
 
-  // Élimination : confirmation requise à 0 (si pas de scores négatifs)
-  if(!allowNeg&&p.score<=0&&!p.eliminated){
-    // Vibration + confirmation
-    if(navigator.vibrate)navigator.vibrate([50,30,80]);
-    elimPending=i;
-    document.getElementById('elim-confirm-name').textContent=p.playerName||`Joueur ${i+1}`;
-    document.getElementById('elim-modal').classList.remove('hidden');
+  // Victoire : atteindre winPoints — marquer immédiatement, continuer
+  if(winPoints!==null&&!p.eliminated&&!p.winner){
+    if((winPoints>=startPoints&&p.score>=winPoints)||(winPoints<startPoints&&p.score<=winPoints)){
+      rankCounter++;p.winner=true;p.winRank=rankCounter;
+      p.finalScore=(p.rawScore!==undefined)?p.rawScore:p.score;
+      if(navigator.vibrate)navigator.vibrate([80,40,80,40,120]);
+      setTimeout(()=>{ renderGame(); saveGame(); },300);
+      return;
+    }
   }
+
+  // Élimination : atteindre elimPoints
+  if(elimPoints!==null&&!p.eliminated){
+    const triggered=(elimPoints<=startPoints&&p.score<=elimPoints)||(elimPoints>startPoints&&p.score>=elimPoints);
+    if(triggered){
+      if(navigator.vibrate)navigator.vibrate([50,30,80]);
+      p.finalScore=(p.rawScore!==undefined)?p.rawScore:p.score;
+      const alive=players.filter(pl=>!pl.eliminated&&!pl.winner);
+      if(alive.length<=2){
+        elimPending=i;
+        document.getElementById('elim-confirm-name').textContent=p.playerName||`Joueur ${i+1}`;
+        document.getElementById('elim-modal').classList.remove('hidden');
+      } else {
+        elimDirect(i);
+      }
+      return;
+    }
+  }
+
+  // En mode No limit (objectifMode==='none'), pas d'élimination automatique
 }
 
 // ── ÉLIMINATION ───────────────────────────────────────────────────
-function confirmElim(){
-  document.getElementById('elim-modal').classList.add('hidden');
-  if(elimPending<0)return;
-  const i=elimPending;elimPending=-1;
+
+// ── ÉLIMINATION DIRECTE (sans confirmation) ──────────────────────
+function elimDirect(i){
+  rankCounter++;
   players[i].eliminated=true;
+  players[i].elimRank=rankCounter;
   setTimeout(()=>{
     renderGame();saveGame();
-    const alive=players.filter(pl=>!pl.eliminated);
-    if(alive.length===1){
-      const w=alive[0];
-      document.getElementById('winner-name').textContent=w.playerName||'Dernier survivant';
-      document.getElementById('winner-sub').textContent='Dernier survivant · Score : '+fmtNum(w.score);
+    const alive=players.filter(pl=>!pl.eliminated&&!pl.winner);
+    if(alive.length===1&&!alive[0].winner){
+      rankCounter++;alive[0].winRank=rankCounter;alive[0].winner=true;
+      renderGame();
+      document.getElementById('winner-name').textContent=alive[0].playerName||'Dernier survivant';
+      document.getElementById('winner-sub').textContent='Dernier survivant · Score : '+fmtNum(alive[0].score);
       document.getElementById('winner-modal').classList.remove('hidden');
       localStorage.removeItem('scoretrack_save');
     }
   },300);
+}
+function confirmElim(){
+  document.getElementById('elim-modal').classList.add('hidden');
+  if(elimPending<0)return;
+  const i=elimPending;elimPending=-1;
+  elimDirect(i);
 }
 function cancelElim(){
   document.getElementById('elim-modal').classList.add('hidden');
@@ -1489,6 +1763,7 @@ function cancelElim(){
 // ── FLASH ─────────────────────────────────────────────────────────
 function flashZone(z,cls){z.classList.add(cls);setTimeout(()=>z.classList.remove(cls),200);}
 function flashDelta(i,groupSum){
+  if(players[i]&&(players[i].winner||players[i].eliminated))return;
   const el=document.getElementById(`df-${i}`);if(!el)return;
   const s=groupSum>0?'+':'';
   el.textContent=s+fmtNum(groupSum);
@@ -1518,17 +1793,82 @@ function logGrouped(pi,delta){
 
 // ── MODAL SCORE MANUEL ────────────────────────────────────────────
 function openScoreModal(pi){
+  const p=players[pi];if(!p||p.eliminated||p.winner)return;
   // Toujours fermer le groupe ouvert pour cet index
   const openGroup=history.find(h=>h.playerIdx===pi&&h.open);
   if(openGroup){openGroup.open=false;if(groupTimers[pi]){clearTimeout(groupTimers[pi]);delete groupTimers[pi];}}
-  const p=players[pi];modalPlayerIdx=pi;modalValue='0';modalSign=1;
+  modalPlayerIdx=pi;modalValue='0';modalSign=1;
   document.getElementById('score-modal-player').textContent=(p.playerName||`Joueur ${pi+1}`)+' — '+fmtNum(p.score);
   updateModalDisplay();
   document.getElementById('sign-plus').classList.add('active');
   document.getElementById('sign-minus').classList.remove('active');
+  // Orienter le modal dans le sens de la carte du joueur
+  const rot=p.rot||'rot-0';
+  const overlay=document.getElementById('score-modal');
+  const rotEl=document.getElementById('modal-content-rotatable');
+  const box=overlay.querySelector('.modal-box');
+  // Réinitialiser tout
+  overlay.removeAttribute('style');
+  if(rotEl)rotEl.removeAttribute('style');
+  if(box)box.removeAttribute('style');
+  if(rot==='rot-180'){
+    // rot-180 : modal ancré en haut, contenu retourné
+    overlay.style.alignItems='flex-start';
+    rotEl.style.transform='rotate(180deg)';
+  } else if(rot==='rot-l'||rot==='rot-r'){
+    const vw=window.innerWidth,vh=window.innerHeight;
+    const isLeft=rot==='rot-l';
+    const deg=isLeft?90:-90;
+    // Overlay redimensionné en paysage et pivoté
+    overlay.style.position='fixed';
+    overlay.style.width=vh+'px';
+    overlay.style.height=vw+'px';
+    overlay.style.top=`${(vh-vw)/2}px`;
+    overlay.style.left=`${(vw-vh)/2}px`;
+    overlay.style.transform=`rotate(${deg}deg)`;
+    overlay.style.transformOrigin='center center';
+    overlay.style.alignItems='flex-end';
+    overlay.style.justifyContent='center';
+    if(box){
+      box.style.width=vw+'px';
+      box.style.maxWidth=vw+'px';
+      box.style.maxHeight=vw+'px';
+      box.style.overflowY='auto';
+    }
+    // Réduire le padding et les tailles pour tenir dans la largeur de l'écran
+    rotEl.style.padding='6px 12px 12px';
+    const title=overlay.querySelector('.modal-title');
+    const player=overlay.querySelector('.modal-player');
+    const scoreDisp=overlay.querySelector('.modal-score-display');
+    const handle=overlay.querySelector('.modal-handle');
+    const signRow=overlay.querySelector('.modal-sign-row');
+    if(handle)handle.style.marginBottom='4px';
+    if(title)title.style.marginBottom='2px';
+    if(player)player.style.marginBottom='4px';
+    if(scoreDisp){scoreDisp.style.fontSize='28px';scoreDisp.style.marginBottom='4px';scoreDisp.style.minHeight='34px';}
+    if(signRow)signRow.style.marginBottom='4px';
+    // Réduire les boutons du pavé
+    overlay.querySelectorAll('.key-btn').forEach(k=>{k.style.padding='8px 4px';k.style.fontSize='18px';});
+    overlay.querySelectorAll('.modal-btn').forEach(b=>{b.style.padding='10px';});
+    overlay.querySelectorAll('.sign-btn').forEach(b=>{b.style.padding='10px';});
+    const keypad=overlay.querySelector('.modal-keypad');
+    if(keypad)keypad.style.marginBottom='8px';
+  }
   document.getElementById('score-modal').classList.remove('hidden');
 }
-function closeScoreModal(){document.getElementById('score-modal').classList.add('hidden');}
+function closeScoreModal(){
+  const overlay=document.getElementById('score-modal');
+  overlay.classList.add('hidden');
+  overlay.removeAttribute('style');
+  const rotEl=document.getElementById('modal-content-rotatable');
+  if(rotEl)rotEl.removeAttribute('style');
+  const box=overlay.querySelector('.modal-box');
+  if(box)box.removeAttribute('style');
+  // Réinitialiser les éléments internes
+  overlay.querySelectorAll('.key-btn,.modal-btn,.sign-btn').forEach(el=>el.removeAttribute('style'));
+  const els=['.modal-title','.modal-player','.modal-score-display','.modal-handle','.modal-sign-row','.modal-keypad'];
+  els.forEach(sel=>{const el=overlay.querySelector(sel);if(el)el.removeAttribute('style');});
+}
 function setSign(s){modalSign=s;document.getElementById('sign-plus').classList.toggle('active',s===1);document.getElementById('sign-minus').classList.toggle('active',s===-1);updateModalDisplay();}
 function pressKey(k){
   if(k==='⌫')modalValue=modalValue.length>1?modalValue.slice(0,-1):'0';
@@ -1547,16 +1887,19 @@ function confirmScoreModal(){
   const v=parseInt(modalValue)||0;if(v===0){closeScoreModal();return;}
   const delta=modalSign*v;saveUndo();
   const p=players[modalPlayerIdx];
-  const minVal=allowNeg?-Infinity:0;
+  const minVal=bloquerMode==='min'?startPoints:(allowNeg||objectifMode==='none'?-Infinity:0);
+  const capMax=bloquerMode==='max'?startPoints:(maxPoints===Infinity?Infinity:maxPoints);
   const prevScore=p.score;
-  p.score=Math.min(maxPoints===Infinity?Infinity:maxPoints,Math.max(minVal,p.score+delta));
+  const rawScore=p.score+delta;
+  p.score=Math.min(capMax,Math.max(minVal,rawScore));
+  p.rawScore=rawScore; // score brut avant clamp
   const realDelta=p.score-prevScore;
+  const rawDelta=rawScore-prevScore; // delta brut avant clamp
   if(realDelta===0){closeScoreModal();return;}
   updateDisplay(modalPlayerIdx,null,realDelta);
   flashDelta(modalPlayerIdx,realDelta);
-  // Nouveau groupe distinct pour saisie manuelle
   actionCounter++;
-  const group={playerIdx:modalPlayerIdx,who:p.playerName,entries:[{delta:realDelta}],open:false,rank:actionCounter};
+  const group={playerIdx:modalPlayerIdx,who:p.playerName,entries:[{delta:rawDelta}],open:false,rank:actionCounter};
   history.unshift(group);
   saveGame();
   closeScoreModal();
@@ -1602,17 +1945,21 @@ function showRecap(){
   let html='';
   players.forEach((p,pi)=>{
     const groups=history.filter(h=>h.playerIdx===pi).sort((a,b)=>a.rank-b.rank);
-    if(!groups.length)return;
+    if(!groups.length&&!p.eliminated&&!p.winner)return;
     const total=groups.reduce((s,g)=>s+g.entries.reduce((ss,e)=>ss+e.delta,0),0);
-    html+=`<div class="recap-player"><div class="recap-player-header"><div class="recap-player-dot" style="background:${COLORS[pi%12]};box-shadow:0 0 6px ${COLORS[pi%12]}"></div><div class="recap-player-name">${p.playerName||'Joueur '+(pi+1)}</div></div>`;
+    // Badge statut — rang seulement si >2 joueurs
+    const showRank=players.length>2;
+    let statusBadge='';
+    if(p.winner)statusBadge=`<div class="recap-status win">🏆 Vainqueur${showRank?' #'+p.winRank:''}</div>`;
+    else if(p.eliminated)statusBadge=`<div class="recap-status elim">💀 Éliminé${showRank?' #'+p.elimRank:''}</div>`;
+    html+=`<div class="recap-player"><div class="recap-player-header"><div class="recap-player-dot" style="background:${COLORS[pi%12]};box-shadow:0 0 6px ${COLORS[pi%12]}"></div><div class="recap-player-name">${p.playerName||'Joueur '+(pi+1)}</div>${statusBadge}</div>`;
     groups.forEach(g=>{
       const sum=g.entries.reduce((s,e)=>s+e.delta,0);
       const cls=sum>0?'pos':'neg';const sign=sum>0?'+':'';
-      const detail=sum>0?`Gain de ${fmtNum(sum)} pts`:`Perte de ${fmtNum(Math.abs(sum))} pts`;
-      html+=`<div class="recap-entry"><div><div class="recap-entry-rank">Action n°${g.rank}</div><div class="recap-entry-detail">${detail}</div></div><div class="recap-delta ${cls}">${sign}${fmtNum(sum)}</div></div>`;
+      html+=`<div class="recap-entry"><div class="recap-entry-rank">#${g.rank}</div><div class="recap-delta ${cls}">${sign}${fmtNum(sum)}</div></div>`;
     });
-    const scoreSign=total>0?'+':'';
-    html+=`<div class="recap-total"><div class="recap-total-label">Bilan · Score final</div><div class="recap-total-val">${scoreSign}${fmtNum(total)} · ${fmtNum(p.score)}</div></div></div>`;
+    const displayScore=p.finalScore!==undefined?p.finalScore:p.score;
+    html+=`<div class="recap-total"><div class="recap-total-val">${fmtNum(displayScore)}</div></div></div>`;
   });
   if(!html)html='<div style="color:var(--muted2);text-align:center;margin-top:48px;font-family:Share Tech Mono,monospace;font-size:14px;">Aucune action enregistrée.</div>';
   document.getElementById('recap-body').innerHTML=html;
@@ -1627,15 +1974,29 @@ function confirmReset(){
   document.getElementById('bar').style.display='none';
   localStorage.removeItem('scoretrack_save');
   numPlayers=0;startPoints=0;maxPoints=Infinity;allowNeg=false;elimPending=-1;
+  elimPoints=null;winPoints=null;objectifMode='none';
+  bloquerMode='none';rankCounter=0;
+  selectObjectif('none');
+  selectBloquer('none');
+  document.getElementById('objectif-custom').value='';
   document.querySelectorAll('#players-grid .player-chip').forEach(c=>c.classList.remove('on'));
-  document.querySelectorAll('#start-presets .points-chip,#max-presets .points-chip').forEach(c=>{c.classList.remove('on');c.classList.remove('disabled');});
-  document.getElementById('points-custom').value='';document.getElementById('max-custom').value='';
-  document.getElementById('neg-toggle').classList.remove('on');
+  document.querySelectorAll('#start-presets .points-chip').forEach(c=>{c.classList.remove('on');c.classList.remove('disabled');});
+  document.getElementById('points-custom').value='';
   document.querySelectorAll('.preset-card').forEach(c=>c.classList.remove('on'));
   document.getElementById('go-btn').disabled=true;document.getElementById('go-btn').textContent='Suivant →';
-  if(settings.defPlayers>0)selectPlayer(settings.defPlayers);
-  if(settings.defStart>=0)selectStartPreset(settings.defStart);
-  if(settings.defMax>0)selectMaxPreset(settings.defMax);
+  if(lastGameConfig){
+    // Restaurer les réglages de la partie terminée
+    selectPlayer(lastGameConfig.numPlayers);
+    selectStartPreset(lastGameConfig.startPoints);
+    selectBloquer(lastGameConfig.bloquerMode||'none');
+    allowNeg=lastGameConfig.allowNeg||false;
+    setObjectifFromPreset(lastGameConfig.objectifMode||'none', lastGameConfig.objectifVal??null);
+  } else {
+    // Aucune partie jouée : appliquer les défauts
+    if(settings.defPlayers>0)selectPlayer(settings.defPlayers);
+    if(settings.defStart>=0)selectStartPreset(settings.defStart);
+    if(settings.defMax>0)selectMaxPreset(settings.defMax);
+  }
   showPage('setup-page');
 }
 
@@ -1654,14 +2015,19 @@ function confirmReset(){
   }
   document.querySelectorAll('#start-presets .points-chip').forEach(c=>{c.onclick=()=>{document.querySelectorAll('#start-presets .points-chip').forEach(x=>x.classList.remove('on'));c.classList.add('on');startPoints=parseInt(c.dataset.val);document.getElementById('points-custom').value='';checkGoBtn();updateMaxChips();document.querySelectorAll('.preset-card').forEach(x=>x.classList.remove('on'));};});
   document.getElementById('points-custom').addEventListener('input',function(){document.querySelectorAll('#start-presets .points-chip').forEach(x=>x.classList.remove('on'));const v=parseInt(this.value);startPoints=isNaN(v)?-1:v;checkGoBtn();updateMaxChips();});
-  document.querySelectorAll('#max-presets .points-chip').forEach(c=>{c.onclick=()=>{if(c.classList.contains('on')){c.classList.remove('on');maxPoints=Infinity;}else{document.querySelectorAll('#max-presets .points-chip').forEach(x=>x.classList.remove('on'));c.classList.add('on');maxPoints=parseInt(c.dataset.val);document.getElementById('max-custom').value='';}}; });
-  document.getElementById('max-custom').addEventListener('input',function(){document.querySelectorAll('#max-presets .points-chip').forEach(x=>x.classList.remove('on'));const v=parseInt(this.value);if(!isNaN(v)&&v>0&&v<startPoints){this.style.borderColor='var(--red)';maxPoints=Infinity;}else{this.style.borderColor='';maxPoints=(!v||v<=0)?Infinity:v;}});
+  // max-presets supprimé — objectif géré par selectObjectif()
+  // max-custom supprimé
   const kp=document.getElementById('modal-keypad');
   [1,2,3,4,5,6,7,8,9,'⌫',0,'00'].forEach(k=>{
     const b=document.createElement('button');b.className='key-btn'+(k==='⌫'?' del':'');b.textContent=k;
     b.addEventListener('touchstart',e=>{e.preventDefault();pressKey(k);},{passive:false});
     b.onclick=()=>pressKey(k);kp.appendChild(b);
   });
+  document.getElementById('objectif-custom').addEventListener('input',()=>checkGoBtn());
+  // État initial : No limit → chips et input désactivés
+  document.getElementById('objectif-custom').disabled=true;
+  document.getElementById('objectif-custom').placeholder='—';
+  document.querySelectorAll('#objectif-presets .points-chip').forEach(c=>{c.style.pointerEvents='none';c.style.opacity='0.25';});
   loadSettings();
   // Cacher le splash
   setTimeout(()=>{
