@@ -198,8 +198,11 @@
 [data-theme="ldm-day"] .winner-name,[data-theme="ldm-day"] .winner-sub{color:var(--text);}
 [data-theme="ldm-day"] .score.crit{animation:scoreBlink 0.9s ease-in-out infinite;}
 
-html{overflow-x:hidden;width:100%;min-height:100dvh;}
-body{min-height:100dvh;width:100%;background:var(--bg-grad);color:var(--text);font-family:'Inter',sans-serif;overflow-x:hidden;}
+html{overflow-x:hidden;width:100%;min-height:100dvh;background:var(--bg);}
+body{min-height:100dvh;width:100%;background:var(--bg-grad);background-color:var(--bg);color:var(--text);font-family:'Inter',sans-serif;overflow-x:hidden;}
+/* Couvre les bandes safe-area iOS (notch haut, home indicator bas) avec la couleur du thème */
+body::before{content:'';position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:200;}
+body::after{content:'';position:fixed;bottom:0;left:0;right:0;height:env(safe-area-inset-bottom,0px);background:var(--bg);z-index:200;}
 
 .page{display:none;flex-direction:column;align-items:center;min-height:100dvh;
   padding:0 20px 24px;
@@ -207,10 +210,10 @@ body{min-height:100dvh;width:100%;background:var(--bg-grad);color:var(--text);fo
 .page.active{display:flex;}
 
 /* Logo spacer — espace supplémentaire sous la status bar pour le ⚙️ */
-.logo{display:flex;flex-direction:column;align-items:center;margin-bottom:32px;position:relative;width:100%;max-width:420px;padding-top:28px;}
+.logo{display:flex;flex-direction:column;align-items:center;margin-bottom:32px;position:relative;width:100%;max-width:420px;padding-top:calc(env(safe-area-inset-top,44px) + 52px);}
 /* Spacer générique pour les pages sans .logo */
-.page-top-spacer{height:28px;width:100%;flex-shrink:0;}
-.logo-gear{position:fixed;right:20px;top:calc(env(safe-area-inset-top,44px) + 12px);background:none;border:none;font-size:24px;cursor:pointer;opacity:0.6;padding:4px;transition:opacity 0.2s;z-index:100;}
+.page-top-spacer{height:calc(env(safe-area-inset-top,44px) + 16px);width:100%;flex-shrink:0;}
+.logo-gear{position:absolute;right:0;top: 20px;background:none;border:none;font-size:24px;cursor:pointer;opacity:0.6;padding:4px;transition:opacity 0.2s;z-index:300;}
 .logo-gear:hover{opacity:1;}
 .logo-mark{width:60px;height:60px;border-radius:var(--radius);margin-bottom:12px;border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:30px;box-shadow:0 0 20px var(--accent),inset 0 0 20px rgba(0,0,0,0.1);}
 .logo-name{font-family:var(--btn-font);font-size:24px;font-weight:900;letter-spacing:0.1em;color:var(--accent);text-shadow:0 0 12px var(--accent);text-transform:uppercase;}
@@ -1774,7 +1777,7 @@ function elimDirect(i){
       rankCounter++;alive[0].winRank=rankCounter;alive[0].winner=true;
       renderGame();
       document.getElementById('winner-name').textContent=alive[0].playerName||'Dernier survivant';
-      document.getElementById('winner-sub').textContent='Dernier survivant · Score : '+fmtNum(alive[0].score);
+      document.getElementById('winner-sub').textContent='Dernier survivant · Score : '+fmtNum(alive[0].score);
       document.getElementById('winner-modal').classList.remove('hidden');
       localStorage.removeItem('scoretrack_save');
     }
