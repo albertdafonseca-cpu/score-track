@@ -10,9 +10,21 @@
   if(screen.orientation?.lock)screen.orientation.lock('portrait').catch(()=>{});
   document.addEventListener('contextmenu',e=>e.preventDefault());
   document.addEventListener('touchstart',e=>{if(e.touches.length>1)e.preventDefault();},{passive:false});
-  // Service Worker — fonctionnement hors ligne
+  // Service Worker — fonctionnement hors ligne + mise à jour automatique
   if('serviceWorker' in navigator){
     navigator.serviceWorker.register('./sw-st.js').catch(()=>{});
+    // Reçoit la notification de mise à jour du SW
+    navigator.serviceWorker.addEventListener('message', e => {
+      if (e.data?.type === 'SW_UPDATED') {
+        // Bannière discrète en bas — tap pour recharger
+        const b = document.createElement('div');
+        b.id = 'update-banner';
+        b.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#00ffe0;color:#020d12;font-family:Orbitron,monospace;font-size:11px;font-weight:700;letter-spacing:0.12em;padding:10px 20px;border-radius:30px;z-index:9999;cursor:pointer;box-shadow:0 4px 20px rgba(0,255,224,0.4);white-space:nowrap;';
+        b.textContent = '↻  MISE À JOUR DISPONIBLE';
+        b.onclick = () => location.reload();
+        document.body.appendChild(b);
+      }
+    });
   }
 </script>
 <meta name="apple-mobile-web-app-title" content="ScoreTrack">
@@ -186,14 +198,19 @@
 [data-theme="ldm-day"] .winner-name,[data-theme="ldm-day"] .winner-sub{color:var(--text);}
 [data-theme="ldm-day"] .score.crit{animation:scoreBlink 0.9s ease-in-out infinite;}
 
-html{overflow-x:hidden;width:100%;height:100%;}body{height:100%;width:100%;min-height:100vh;background:var(--bg-grad);color:var(--text);font-family:'Inter',sans-serif;overflow-x:hidden;}
+html{overflow-x:hidden;width:100%;min-height:100dvh;}
+body{min-height:100dvh;width:100%;background:var(--bg-grad);color:var(--text);font-family:'Inter',sans-serif;overflow-x:hidden;}
 
-.page{display:none;flex-direction:column;align-items:center;min-height:100vh;padding:calc(56px + env(safe-area-inset-top,0px)) 20px calc(140px + env(safe-area-inset-bottom,0px));overflow-y:auto;overflow-x:hidden;background:var(--bg-grad);width:100%;box-sizing:border-box;}
+.page{display:none;flex-direction:column;align-items:center;min-height:100dvh;
+  padding:0 20px 24px;
+  overflow-x:hidden;background:var(--bg-grad);width:100%;box-sizing:border-box;}
 .page.active{display:flex;}
 
-/* SETUP */
-.logo{display:flex;flex-direction:column;align-items:center;margin-bottom:32px;position:relative;width:100%;max-width:420px;}
-.logo-gear{position:absolute;right:0;top:0;background:none;border:none;font-size:24px;cursor:pointer;opacity:0.6;padding:4px;transition:opacity 0.2s;}
+/* Logo spacer — espace supplémentaire sous la status bar pour le ⚙️ */
+.logo{display:flex;flex-direction:column;align-items:center;margin-bottom:32px;position:relative;width:100%;max-width:420px;padding-top:28px;}
+/* Spacer générique pour les pages sans .logo */
+.page-top-spacer{height:28px;width:100%;flex-shrink:0;}
+.logo-gear{position:fixed;right:20px;top:calc(env(safe-area-inset-top,44px) + 12px);background:none;border:none;font-size:24px;cursor:pointer;opacity:0.6;padding:4px;transition:opacity 0.2s;z-index:100;}
 .logo-gear:hover{opacity:1;}
 .logo-mark{width:60px;height:60px;border-radius:var(--radius);margin-bottom:12px;border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:30px;box-shadow:0 0 20px var(--accent),inset 0 0 20px rgba(0,0,0,0.1);}
 .logo-name{font-family:var(--btn-font);font-size:24px;font-weight:900;letter-spacing:0.1em;color:var(--accent);text-shadow:0 0 12px var(--accent);text-transform:uppercase;}
@@ -764,6 +781,7 @@ html{overflow-x:hidden;width:100%;height:100%;}body{height:100%;width:100%;min-h
 </div>
 
 <div id="settings-page" class="page">
+  <div class="page-top-spacer"></div>
   <div class="settings-header">
     <button class="back-btn" onclick="backFromSettings()">←</button>
     <div class="settings-title">Thème</div>
@@ -800,6 +818,7 @@ html{overflow-x:hidden;width:100%;height:100%;}body{height:100%;width:100%;min-h
 </div>
 
 <div id="names-page" class="page">
+  <div class="page-top-spacer"></div>
   <div class="names-title">Joueurs</div>
   <div class="names-sub">Optionnel — laisser vide pour jouer sans nom</div>
   <div class="names-actions">
