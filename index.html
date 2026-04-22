@@ -198,22 +198,23 @@
 [data-theme="ldm-day"] .winner-name,[data-theme="ldm-day"] .winner-sub{color:var(--text);}
 [data-theme="ldm-day"] .score.crit{animation:scoreBlink 0.9s ease-in-out infinite;}
 
-html{overflow-x:hidden;width:100%;min-height:100dvh;background:var(--bg);}
+html{overflow-x:hidden;width:100%;min-height:100dvh;background:var(--bg-grad);background-color:var(--bg);}
 body{min-height:100dvh;width:100%;background:var(--bg-grad);background-color:var(--bg);color:var(--text);font-family:'Inter',sans-serif;overflow-x:hidden;}
-/* Couvre les bandes safe-area iOS (notch haut, home indicator bas) avec la couleur du thème */
-body::before{content:'';position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:200;}
-body::after{content:'';position:fixed;bottom:0;left:0;right:0;height:env(safe-area-inset-bottom,0px);background:var(--bg);z-index:200;}
+/* Couvre les bandes safe-area iOS avec la texture du thème */
+body::before{content:'';position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);background:var(--bg-grad);background-color:var(--bg);z-index:200;}
+body::after{content:'';position:fixed;bottom:0;left:0;right:0;height:env(safe-area-inset-bottom,0px);background:var(--bg-grad);background-color:var(--bg);z-index:200;}
 
 .page{display:none;flex-direction:column;align-items:center;min-height:100dvh;
-  padding:0 20px 24px;
+  padding:0 20px env(safe-area-inset-bottom,40px);
   overflow-x:hidden;background:var(--bg-grad);width:100%;box-sizing:border-box;}
 .page.active{display:flex;}
 
 /* Logo spacer — espace supplémentaire sous la status bar pour le ⚙️ */
-.logo{display:flex;flex-direction:column;align-items:center;margin-bottom:32px;position:relative;width:100%;max-width:420px;padding-top:calc(env(safe-area-inset-top,44px) + 52px);}
+.logo{display:flex;flex-direction:column;align-items:center;margin-bottom:32px;position:relative;width:100%;max-width:420px;padding-top:calc(env(safe-area-inset-top,44px) + 72px);}
 /* Spacer générique pour les pages sans .logo */
-.page-top-spacer{height:calc(env(safe-area-inset-top,44px) + 16px);width:100%;flex-shrink:0;}
-.logo-gear{position:absolute;right:0;top: 40px;background:none;border:none;font-size:24px;cursor:pointer;opacity:0.6;padding:4px;transition:opacity 0.2s;z-index:300;}
+.page-top-spacer{height:calc(env(safe-area-inset-top,44px) + 34px);width:100%;flex-shrink:0;}
+/* Gear positionné par rapport à la safe-area réelle */
+.logo-gear{position:absolute;right:20px;top:calc(env(safe-area-inset-top,44px) + 34px);background:none;border:none;font-size:24px;cursor:pointer;opacity:0.6;padding:4px;transition:opacity 0.2s;z-index:300;}
 .logo-gear:hover{opacity:1;}
 .logo-mark{width:60px;height:60px;border-radius:var(--radius);margin-bottom:12px;border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:30px;box-shadow:0 0 20px var(--accent),inset 0 0 20px rgba(0,0,0,0.1);}
 .logo-name{font-family:var(--btn-font);font-size:24px;font-weight:900;letter-spacing:0.1em;color:var(--accent);text-shadow:0 0 12px var(--accent);text-transform:uppercase;}
@@ -270,14 +271,14 @@ body::after{content:'';position:fixed;bottom:0;left:0;right:0;height:env(safe-ar
 
 /* GAME */
 #game-screen{display:none;flex-direction:column;position:fixed;top:0;left:0;right:0;bottom:0;width:100%;max-width:100vw;overflow:hidden;}
-.game-header{display:flex;align-items:center;justify-content:center;padding:calc(10px + env(safe-area-inset-top,0px)) 16px 10px;border-bottom:1px solid var(--border);background:var(--bg2);flex-shrink:0;height:calc(44px + env(safe-area-inset-top,0px));}
+.game-header{display:flex;align-items:center;justify-content:center;padding:calc(10px + env(safe-area-inset-top,0px)) 16px 10px;background:var(--bg2);flex-shrink:0;height:calc(env(safe-area-inset-top,20px));}
 .game-header-title{font-family:var(--btn-font);font-size:12px;font-weight:700;letter-spacing:0.22em;color:var(--accent);text-shadow:0 0 10px var(--accent);text-transform:uppercase;}
 .players-wrap{
   flex:1;min-height:0;min-width:0;max-width:100%;
   display:grid;
   overflow:hidden;
   position:relative;
-  padding-bottom:calc(68px + env(safe-area-inset-bottom,0px));
+   padding-bottom:calc(50px + env(safe-area-inset-bottom,20px));
 }
 .game-col{display:contents;} /* game-col n'est plus nécessaire, ignoré */
 
@@ -542,7 +543,7 @@ body::after{content:'';position:fixed;bottom:0;left:0;right:0;height:env(safe-ar
 .elim-name{font-family:var(--btn-font);letter-spacing:0.1em;color:rgba(255,255,255,0.5);text-transform:uppercase;}
 
 /* BAR */
-#bar{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);padding:6px 6px calc(14px + env(safe-area-inset-bottom,0px));gap:5px;z-index:100;align-items:center;justify-content:center;height:calc(68px + env(safe-area-inset-bottom,0px));}
+#bar{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);padding:6px 6px calc(env(safe-area-inset-bottom,20px));gap:5px;z-index:100;align-items:center;justify-content:center;height:calc(50px + env(safe-area-inset-bottom,20px));}
 .bar-btn{flex:1;max-width:110px;padding:7px 4px 6px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--muted2);font-family:var(--btn-font);font-size:7px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;transition:all 0.15s;display:flex;flex-direction:column;align-items:center;gap:3px;}
 .bar-btn .btn-icon{font-size:18px;line-height:1;}
 .bar-btn .btn-label{line-height:1;}
@@ -591,7 +592,7 @@ body::after{content:'';position:fixed;bottom:0;left:0;right:0;height:env(safe-ar
 .winner-btns{display:flex;flex-direction:column;gap:8px;}
 
 /* RECAP */
-.fullpage{position:fixed;inset:0;z-index:300;background:var(--bg);overflow-y:auto;padding-bottom:calc(40px + env(safe-area-inset-bottom,0px));}
+.fullpage{position:fixed;inset:0;z-index:300;background:var(--bg);overflow-y:auto;padding-bottom:calc(env(safe-area-inset-bottom,20px));}
 .fullpage-header{display:flex;align-items:center;justify-content:space-between;padding:16px 16px 12px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:1;}
 .fullpage-title{font-family:var(--btn-font);font-size:14px;font-weight:700;color:var(--accent);text-shadow:0 0 10px var(--accent);letter-spacing:0.12em;text-transform:uppercase;}
 .fullpage-close{background:var(--surface);border:1px solid var(--border);color:var(--muted2);width:32px;height:32px;border-radius:var(--radius);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
@@ -647,7 +648,7 @@ body::after{content:'';position:fixed;bottom:0;left:0;right:0;height:env(safe-ar
 .elim-confirm-sub{font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--muted2);text-align:center;margin-bottom:20px;}
 
 /* ── Setup btn row ── */
-.setup-btn-row{display:flex;gap:8px;width:100%;max-width:420px;margin-top:8px;}
+.setup-btn-row{display:flex;gap:8px;width:100%;max-width:420px;margin-top:8px;padding-bottom:env(safe-area-inset-bottom,40px);}
 .names-back-flex{flex:1;padding:10px;}
 /* ── Bouton confidentialité settings ── */
 .btn-privacy-link{margin-top:8px;opacity:0.6;font-size:10px;}
@@ -1332,7 +1333,6 @@ function renderGame(){
   const wrap=document.getElementById('players-wrap');
   wrap.innerHTML='';
   wrap.style.visibility='hidden';
-  wrap.style.paddingBottom='68px';
   const n=players.length;
   const s=seatOrder;
   let cols,rows,placements;
@@ -1567,9 +1567,7 @@ function buildCard(pi,rot){
 
 // ── FIT TEXTS ─────────────────────────────────────────────────────
 let _fitCache={};
-function fitTexts(){
-  const n=players.length;
-  document.querySelectorAll('.pcard').forEach(card=>{
+function fitCard(card){
     const isLat=card.classList.contains('rot-l')||card.classList.contains('rot-r');
     const inner=card.querySelector('.card-inner');
     let visH,visW;
@@ -1579,7 +1577,7 @@ function fitTexts(){
       visH=card.offsetHeight;visW=card.offsetWidth;
     }
     if(!visH||!visW||visH<10||visW<10)return;
-    const cacheKey=`${visH}x${visW}`;
+    const cacheKey=`${visH}x${visW}x${card.querySelector('.score')?.textContent||''}`;
     if(_fitCache[card.id]===cacheKey)return;
     _fitCache[card.id]=cacheKey;
 
@@ -1597,18 +1595,19 @@ function fitTexts(){
     const cap=Math.min(ref*0.55,180);
     const scoreStr=sc?sc.textContent||'0':'0';
     const nChars=scoreStr.replace(/\s/g,'').length||1;
-    const charRatio=nChars<=2?0.55:nChars<=3?0.42:nChars<=4?0.32:nChars<=5?0.26:0.22;
-    // Contraindre par la largeur disponible
-    // La largeur utile pour le score est usW (moins les signes +/- sur les côtés)
-    const scoreAvailW=usW*0.80;
-    const maxByWidth=scoreAvailW/(nChars*0.72);
+    const charRatio=nChars<=2?0.52:nChars<=3?0.38:nChars<=4?0.28:nChars<=5?0.22:0.18;
+    // Contraindre par la largeur disponible — ratio 0.85 par char (plus conservateur)
+    const scoreAvailW=usW*0.78;
+    const maxByWidth=scoreAvailW/(nChars*0.85);
     let scoreSz=Math.max(12,Math.min(ref*charRatio,cap,maxByWidth));
     // Vérification après rendu : si le score déborde, réduire itérativement
     if(sc){
       sc.style.fontSize=scoreSz+'px';
+      const swrap=sc.closest('.score-wrap')||sc.parentElement;
+      const availW=swrap?swrap.offsetWidth*0.90:usW*0.90;
       let tries=0;
-      while(sc.scrollWidth>usW*0.90&&scoreSz>12&&tries++<8){
-        scoreSz=Math.max(12,scoreSz*0.85);
+      while(sc.scrollWidth>availW&&scoreSz>12&&tries++<12){
+        scoreSz=Math.max(12,scoreSz*0.88);
         sc.style.fontSize=scoreSz+'px';
       }
     }
@@ -1654,7 +1653,9 @@ function fitTexts(){
       if(rankEl)rankEl.style.fontSize=subSz+'px';
       if(scoreEl)scoreEl.style.fontSize=scoreSzTag+'px';
     }
-  });
+}
+function fitTexts(){
+  document.querySelectorAll('.pcard').forEach(card=>fitCard(card));
 }
 
 // ── FIX LATERAL ───────────────────────────────────────────────────
@@ -1731,6 +1732,12 @@ function updateDisplay(i,zone,delta){
   sc.textContent=fmtNum(p.score);
   sc.className='score '+scoreClass(p.score);
 
+  // Invalider le cache de cette carte pour forcer le recalcul du fontSize
+  const card=sc.closest('.pcard');
+  if(card&&card.id)delete _fitCache[card.id];
+  // Refitter uniquement cette carte (immédiat, pas de setTimeout)
+  if(card)fitCard(card);
+
   // Victoire : atteindre winPoints — marquer immédiatement, continuer
   if(winPoints!==null&&!p.eliminated&&!p.winner){
     if((winPoints>=startPoints&&p.score>=winPoints)||(winPoints<startPoints&&p.score<=winPoints)){
@@ -1777,7 +1784,7 @@ function elimDirect(i){
       rankCounter++;alive[0].winRank=rankCounter;alive[0].winner=true;
       renderGame();
       document.getElementById('winner-name').textContent=alive[0].playerName||'Dernier survivant';
-      document.getElementById('winner-sub').textContent='Dernier survivant · Score : '+fmtNum(alive[0].score);
+      document.getElementById('winner-sub').textContent='Dernier survivant · Score : '+fmtNum(alive[0].score);
       document.getElementById('winner-modal').classList.remove('hidden');
       localStorage.removeItem('scoretrack_save');
     }
