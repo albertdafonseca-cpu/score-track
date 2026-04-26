@@ -3,8 +3,8 @@
 //  ⚠️  Incrémenter CACHE_VERSION à chaque déploiement
 //      → invalide le cache sur tous les appareils
 // ─────────────────────────────────────────────────────────────────
-const CACHE_VERSION = 'st-v26';
-const FONTS_CACHE   = 'st-fonts-v1';   // polices : mise à jour rare
+const CACHE_VERSION = 'st-v27';
+const FONTS_CACHE   = 'st-fonts-v2';   // polices : mise à jour rare
 
 const STATIC = [
   './',
@@ -13,31 +13,44 @@ const STATIC = [
   './favicon.png',
 ];
 
+// URLs des fonts à précacher au premier chargement
+const FONT_CSS_URLS = [
+  'https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Share+Tech+Mono&family=Exo+2:wght@400;600&display=swap',
+];
+
 const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 
 // ── Installation ──────────────────────────────────────────────────
 self.addEventListener('install', e => {
-  // Précache les fichiers statiques dans le nouveau cache versionné
-  e.waitUntil(
-    caches.open(CACHE_VERSION)
-      .then(cache => cache.addAll(STATIC))
-      .then(() => self.skipWaiting())   // prend le contrôle immédiatement
-  );
+  e.waitUntil((async () => {
+    // 1. Précache les fichiers statiques
+    const staticCache = await caches.open(CACHE_VERSION);
+    await staticCache.addAll(STATIC);
+
+    // 2. Précache les fonts (cache séparé, survit aux mises à jour de l'app)
+    const fontCache = await caches.open(FONTS_CACHE);
+    await Promise.all(
+      FONT_CSS_URLS.map(url =>
+        fetch(url, { mode: 'cors' })
+          .then(res => { if (res.ok) fontCache.put(url, res); })
+          .catch(() => {/* hors ligne à l'install — réessai au premier fetch */})
+      )
+    );
+
+    await self.skipWaiting();
+  })());
 });
 
 // ── Activation ────────────────────────────────────────────────────
 self.addEventListener('activate', e => {
   e.waitUntil((async () => {
-    // Supprime tous les anciens caches (sauf polices)
     const keys = await caches.keys();
     await Promise.all(
       keys
         .filter(k => k !== CACHE_VERSION && k !== FONTS_CACHE)
         .map(k => caches.delete(k))
     );
-    // Prend le contrôle de tous les onglets ouverts sans attendre un rechargement
     await self.clients.claim();
-    // Notifie les onglets ouverts → la page affiche une bannière "Mise à jour disponible"
     const clients = await self.clients.matchAll({ type: 'window' });
     clients.forEach(c => c.postMessage({ type: 'SW_UPDATED', version: CACHE_VERSION }));
   })());
@@ -49,25 +62,23 @@ self.addEventListener('fetch', e => {
 
   const url = new URL(e.request.url);
 
-  // Polices Google : cache-first (elles ne changent pas)
+  // Polices Google : cache-first (ne changent pas)
   if (FONT_HOSTS.includes(url.hostname)) {
     e.respondWith(
       caches.open(FONTS_CACHE).then(cache =>
         cache.match(e.request).then(cached => {
           if (cached) return cached;
-          return fetch(e.request).then(res => {
+          return fetch(e.request, { mode: 'cors' }).then(res => {
             if (res.ok) cache.put(e.request, res.clone());
             return res;
-          }).catch(() => cached);
+          }).catch(() => cached || new Response('', { status: 503 }));
         })
       )
     );
     return;
   }
 
-  // Tout le reste : network-first
-  // → sert toujours la version la plus récente si le réseau est disponible
-  // → fallback cache si hors ligne
+  // Tout le reste : network-first, fallback cache hors ligne
   e.respondWith((async () => {
     const cache = await caches.open(CACHE_VERSION);
     try {
@@ -76,7 +87,10 @@ self.addEventListener('fetch', e => {
       return res;
     } catch {
       return (await cache.match(e.request))
-        || new Response('Hors ligne', { status: 503 });
+        || new Response('Hors ligne — rechargez une fois connecté.', {
+            status: 503,
+            headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+           });
     }
   })());
 });
