@@ -605,14 +605,11 @@ body::after{content:'';position:fixed;bottom:0;left:0;right:0;height:env(safe-ar
 #score-modal.rot-180{align-items:flex-start;}
 #score-modal.rot-180 .modal-box{border-radius:0 0 16px 16px;}
 #score-modal.rot-180:not(.hidden) .modal-box{animation:slideDown 0.22s cubic-bezier(0.32,0.72,0,1) both;}
-/* Prolonge la couleur du modal sous le bord bas (normal) et haut (retourné) */
-#score-modal::after,#privacy-modal::after{content:'';position:fixed;left:0;right:0;bottom:0;height:env(safe-area-inset-bottom,20px);background:var(--bg2);pointer-events:none;z-index:1;}
-#score-modal.rot-180::after{bottom:auto;top:0;height:env(safe-area-inset-top,20px);}
 /* Modaux centrés */
 #reset-modal,#elim-modal,#winner-modal{align-items:center;padding:24px;}
 #reset-modal:not(.hidden) .simple-modal-box,#elim-modal:not(.hidden) .simple-modal-box,#winner-modal:not(.hidden) .modal-box{animation:fadeIn 0.18s ease both;}
 .modal-box{background:var(--bg2);border:1px solid var(--border);border-radius:16px 16px 0 0;padding:0;width:100%;max-width:340px;box-shadow:var(--modal-glow);overflow:hidden;}
-.modal-content-rotatable{padding:24px 20px 36px;transition:transform 0.15s ease;transform-origin:center center;}
+.modal-content-rotatable{padding:24px 20px calc(20px + env(safe-area-inset-bottom,0px));transition:transform 0.15s ease;transform-origin:center center;}
 .modal-handle{width:80px;height:5px;background:var(--border);border-radius:3px;margin:0 auto 16px;padding:16px 40px;box-sizing:content-box;background-clip:content-box;cursor:grab;touch-action:none;}
 .modal-title{font-family:var(--btn-font);font-size:14px;font-weight:700;color:var(--accent);margin-bottom:6px;text-align:center;text-shadow:0 0 10px var(--accent);letter-spacing:0.1em;text-transform:uppercase;}
 .modal-player{font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--muted2);text-align:center;margin-bottom:8px;}
@@ -2007,6 +2004,11 @@ function openScoreModal(pi, forceRot){
   setSign(modalSign);
   // Orienter : forcé par le swipe, ou rotation de la carte pour l'appui long
   const rot=forceRot||(p.rot||'rot-0');
+  const _safeBottom=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sat-bottom')||0)||
+    parseInt(getComputedStyle(document.body).paddingBottom)||
+    (()=>{const d=document.createElement('div');d.style.cssText='position:fixed;bottom:0;height:env(safe-area-inset-bottom,0px);pointer-events:none';document.body.appendChild(d);const h=d.offsetHeight;d.remove();return h;})();
+  const _safeTop=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sat-top')||0)||
+    (()=>{const d=document.createElement('div');d.style.cssText='position:fixed;top:0;height:env(safe-area-inset-top,0px);pointer-events:none';document.body.appendChild(d);const h=d.offsetHeight;d.remove();return h;})();
   const overlay=document.getElementById('score-modal');
   const rotEl=document.getElementById('modal-content-rotatable');
   const box=overlay.querySelector('.modal-box');
@@ -2039,7 +2041,7 @@ function openScoreModal(pi, forceRot){
     {
       const side=Math.min(Math.min(window.innerWidth,window.innerHeight),340), p=Math.min(side/390,1.0);
       if(box){box.style.width=side+'px';box.style.maxWidth=side+'px';box.style.maxHeight='none';box.style.overflowY='auto';box.style.display='';box.style.flexDirection='';box.style.height='';box.style.transform='';box.style.transformOrigin='';box.style.position='';}
-      rotEl.style.padding=`${Math.round(6*p)}px ${Math.round(12*p)}px ${Math.round(12*p)}px`;rotEl.style.display='';rotEl.style.flexDirection='';rotEl.style.flex='';rotEl.style.minHeight='';rotEl.style.overflow='';
+      rotEl.style.padding=`${Math.round(6*p)}px ${Math.round(12*p)}px ${Math.round(12*p)+_safeTop}px`;rotEl.style.display='';rotEl.style.flexDirection='';rotEl.style.flex='';rotEl.style.minHeight='';rotEl.style.overflow='';
       const ttl=overlay.querySelector('.modal-title'),plr=overlay.querySelector('.modal-player'),scd=overlay.querySelector('.modal-score-display'),hdl=overlay.querySelector('.modal-handle'),sgr=overlay.querySelector('.modal-sign-row');
       if(hdl){hdl.style.padding=`${Math.round(4*p)}px 40px`;hdl.style.marginBottom=`${Math.round(4*p)}px`;}
       if(ttl)ttl.style.marginBottom=`${Math.round(2*p)}px`;if(plr)plr.style.marginBottom=`${Math.round(2*p)}px`;
@@ -2054,7 +2056,7 @@ function openScoreModal(pi, forceRot){
     {
       const side=Math.min(Math.min(window.innerWidth,window.innerHeight),340), p=Math.min(side/390,1.0);
       if(box){box.style.width=side+'px';box.style.maxWidth=side+'px';box.style.maxHeight='none';box.style.overflowY='auto';box.style.display='';box.style.flexDirection='';box.style.height='';box.style.transform='';box.style.transformOrigin='';box.style.position='';}
-      rotEl.style.padding=`${Math.round(6*p)}px ${Math.round(12*p)}px ${Math.round(12*p)}px`;rotEl.style.display='';rotEl.style.flexDirection='';rotEl.style.flex='';rotEl.style.minHeight='';rotEl.style.overflow='';
+      rotEl.style.padding=`${Math.round(6*p)}px ${Math.round(12*p)}px ${Math.round(12*p)+_safeBottom}px`;rotEl.style.display='';rotEl.style.flexDirection='';rotEl.style.flex='';rotEl.style.minHeight='';rotEl.style.overflow='';
       const ttl=overlay.querySelector('.modal-title'),plr=overlay.querySelector('.modal-player'),scd=overlay.querySelector('.modal-score-display'),hdl=overlay.querySelector('.modal-handle'),sgr=overlay.querySelector('.modal-sign-row');
       if(hdl){hdl.style.padding=`${Math.round(4*p)}px 40px`;hdl.style.marginBottom=`${Math.round(4*p)}px`;}
       if(ttl)ttl.style.marginBottom=`${Math.round(2*p)}px`;if(plr)plr.style.marginBottom=`${Math.round(2*p)}px`;
@@ -2098,7 +2100,7 @@ function openScoreModal(pi, forceRot){
       box.style.position='';
     }
     // Réduire le padding et les tailles pour tenir dans la largeur de l'écran
-    rotEl.style.padding=`${Math.round(6*p)}px ${Math.round(12*p)}px ${Math.round(12*p)}px`;
+    rotEl.style.padding=`${Math.round(6*p)}px ${Math.round(12*p)}px ${Math.round(12*p)+_safeBottom}px`;
     rotEl.style.display='';
     rotEl.style.flexDirection='';
     rotEl.style.flex='';
