@@ -3,7 +3,7 @@
 //  ⚠️  Incrémenter CACHE_VERSION à chaque déploiement
 //      → invalide le cache sur tous les appareils
 // ─────────────────────────────────────────────────────────────────
-const CACHE_VERSION = 'st-v41';
+const CACHE_VERSION = 'st-v43';
 const FONTS_CACHE   = 'st-fonts-v2';   // polices : mise à jour rare
 
 const STATIC = [
