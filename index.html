@@ -2,14 +2,14 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
 <script>
   if(screen.orientation?.lock)screen.orientation.lock('portrait').catch(()=>{});
   document.addEventListener('contextmenu',e=>e.preventDefault());
-  document.addEventListener('touchstart',e=>{if(e.touches.length>1)e.preventDefault();},{passive:false});
+  // Zoom pinch autorisé — pas de preventDefault sur multi-touch
   // Service Worker — fonctionnement hors ligne + mise à jour automatique
   if('serviceWorker' in navigator){
     navigator.serviceWorker.register('./sw-st.js').catch(()=>{});
@@ -223,9 +223,14 @@
 
 html{overflow-x:hidden;width:100%;min-height:100dvh;background:var(--bg-grad);background-color:var(--bg);}
 body{min-height:100dvh;width:100%;background:var(--bg-grad);background-color:var(--bg);color:var(--text);font-family:'Inter',sans-serif;overflow-x:hidden;}
+body {
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: pan-x pan-y pinch-zoom; /* Indique au navigateur comment gérer le tactile */
+}
 /* Couvre les bandes safe-area iOS avec la texture du thème */
-body::before{content:'';position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);background:var(--bg-grad);background-color:var(--bg);z-index:200;}
-body::after{content:'';position:fixed;bottom:0;left:0;right:0;height:env(safe-area-inset-bottom,0px);background:var(--bg-grad);background-color:var(--bg);z-index:200;}
+body::before{content:'';position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);background:var(--bg-grad);background-color:var(--bg);z-index:198;}
+body::after{content:'';position:fixed;bottom:0;left:0;right:0;height:env(safe-area-inset-bottom,0px);background:var(--bg-grad);background-color:var(--bg);z-index:198;}
 
 .page{display:none;flex-direction:column;align-items:center;min-height:100dvh;
   padding:0 20px env(safe-area-inset-bottom,40px);
@@ -583,7 +588,7 @@ body::after{content:'';position:fixed;bottom:0;left:0;right:0;height:env(safe-ar
 #bar-handle{width:36px;height:4px;border-radius:2px;background:var(--border);transition:background 0.2s, width 0.3s cubic-bezier(0.32,0.72,0,1), height 0.3s;}
 #bar.open #bar-handle-zone{padding:12px 0 10px;}
 #bar.open #bar-handle{width:56px;height:5px;background:var(--accent);}
-#bar-buttons{display:flex;gap:5px;padding:6px 6px calc(env(safe-area-inset-bottom,16px) + 4px);overflow:hidden;max-height:0;opacity:0;transition:max-height 0.28s cubic-bezier(0.32,0.72,0,1),opacity 0.2s ease;}
+#bar-buttons{display:flex;gap:5px;padding:6px 6px calc(env(safe-area-inset-bottom,16px) + 4px);overflow:hidden;max-height:0;opacity:0;transition:max-height 0.28s cubic-bezier(0.32,0.72,0,1),opacity 0.2s ease;justify-content:center;}
 #bar.open #bar-buttons{max-height:80px;opacity:1;}
 
 .bar-btn{flex:1;max-width:110px;padding:7px 4px 6px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--muted2);font-family:var(--btn-font);font-size:7px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;transition:all 0.15s;display:flex;flex-direction:column;align-items:center;gap:3px;}
@@ -595,7 +600,8 @@ body::after{content:'';position:fixed;bottom:0;left:0;right:0;height:env(safe-ar
 .bar-btn:not(:disabled):active{transform:scale(0.94);}
 
 /* MODALS */
-.modal-overlay{position:fixed;inset:0;z-index:200;display:flex;align-items:flex-end;justify-content:center;}
+.modal-overlay{position:fixed;inset:0;z-index:200;display:flex;align-items:flex-end;justify-content:center;padding-bottom:env(safe-area-inset-bottom,0px);}
+.modal-overlay.rot-180{align-items:flex-start;padding-bottom:0;padding-top:env(safe-area-inset-top,0px);}
 #modal-backdrop{position:fixed;inset:0;z-index:199;background:var(--modal-bg);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);transition:background 0.25s ease;}
 .modal-overlay.hidden{display:none!important;}
 @keyframes slideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
@@ -604,25 +610,27 @@ body::after{content:'';position:fixed;bottom:0;left:0;right:0;height:env(safe-ar
 .modal-overlay:not(.hidden) .modal-box{animation:slideUp 0.22s cubic-bezier(0.32,0.72,0,1) both;}
 .modal-overlay.rot-180:not(.hidden) .modal-box{animation:slideDown 0.22s cubic-bezier(0.32,0.72,0,1) both;}
 .modal-overlay:not(.hidden) .simple-modal-box{animation:fadeIn 0.18s ease both;}
-.modal-box{background:var(--bg2);border:1px solid var(--border);border-radius:16px 16px 0 0;padding:0;width:100%;max-width:480px;box-shadow:var(--modal-glow);overflow:hidden;}
-.modal-content-rotatable{padding:24px 20px 36px;transition:transform 0.15s ease;transform-origin:center center;}
-.modal-handle{width:80px;height:5px;background:var(--border);border-radius:3px;margin:0 auto 16px;padding:16px 40px;box-sizing:content-box;background-clip:content-box;cursor:grab;touch-action:none;}
-.modal-title{font-family:var(--btn-font);font-size:14px;font-weight:700;color:var(--accent);margin-bottom:6px;text-align:center;text-shadow:0 0 10px var(--accent);letter-spacing:0.1em;text-transform:uppercase;}
-.modal-player{font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--muted2);text-align:center;margin-bottom:20px;}
-.modal-score-display{font-family:'Share Tech Mono',monospace;font-size:52px;text-align:center;margin-bottom:20px;line-height:1;min-height:64px;}
+.modal-box{background:var(--bg2);border:1px solid var(--border);border-radius:16px 16px 0 0;padding:0;width:100%;max-width:400px;max-height:85dvh;overflow-y:auto;box-shadow:var(--modal-glow);}
+.modal-overlay.rot-180 .modal-box{border-radius:0 0 16px 16px;}
+.modal-overlay.rot-180 .modal-box{border-radius:0 0 16px 16px;}
+.modal-content-rotatable{padding:16px 16px 20px;transition:transform 0.15s ease;transform-origin:center center;width:100%;box-sizing:border-box;}
+.modal-handle{width:48px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 10px;padding:10px 24px;box-sizing:content-box;background-clip:content-box;cursor:grab;touch-action:none;}
+.modal-title{font-family:var(--btn-font);font-size:13px;font-weight:700;color:var(--accent);margin-bottom:4px;text-align:center;text-shadow:0 0 10px var(--accent);letter-spacing:0.1em;text-transform:uppercase;}
+.modal-player{font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--muted2);text-align:center;margin-bottom:10px;}
+.modal-score-display{font-family:'Share Tech Mono',monospace;font-size:36px;text-align:center;margin-bottom:10px;line-height:1;min-height:42px;}
 .modal-score-display.pos{color:var(--green);text-shadow:0 0 20px var(--green);}
 .modal-score-display.neg{color:var(--red);text-shadow:0 0 20px var(--red);}
-.modal-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;}
-.key-btn{padding:16px 8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Share Tech Mono',monospace;font-size:22px;cursor:pointer;transition:all 0.12s;text-align:center;}
+.modal-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px;width:100%;box-sizing:border-box;}
+.key-btn{padding:20px 8px;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Share Tech Mono',monospace;font-size:20px;cursor:pointer;transition:all 0.12s;text-align:center;display:flex;align-items:center;justify-content:center;}
 .key-btn:active{background:color-mix(in srgb,var(--accent) 12%,transparent);border-color:var(--accent);transform:scale(0.95);}
 .key-btn.del{font-size:18px;color:var(--muted2);}
-.modal-sign-row{display:flex;gap:8px;margin-bottom:16px;}
+.modal-sign-row{display:flex;gap:6px;margin-bottom:8px;width:100%;box-sizing:border-box;}
 .sign-btn{flex:1;padding:14px;border:1.5px solid var(--border);border-radius:8px;font-family:var(--btn-font);font-size:11px;font-weight:700;cursor:pointer;transition:all 0.15s;text-align:center;letter-spacing:0.06em;text-transform:uppercase;background:var(--surface);color:var(--muted2);}
 .sign-btn.plus.active{background:var(--green);border-color:var(--green);color:#000;box-shadow:0 0 16px color-mix(in srgb,var(--green) 35%,transparent);}
 .sign-btn.minus.active{background:var(--red);border-color:var(--red);color:#fff;box-shadow:0 0 16px color-mix(in srgb,var(--red) 35%,transparent);}
-.modal-confirm-row{display:flex;gap:8px;}
-.modal-btn{flex:1;padding:15px;border:none;border-radius:8px;font-family:var(--btn-font);font-size:10px;font-weight:700;cursor:pointer;transition:all 0.15s;letter-spacing:0.1em;text-transform:uppercase;}
-.modal-btn.primary{background:transparent;color:var(--accent);border:2px solid var(--accent);text-shadow:0 0 8px var(--accent);}
+.modal-confirm-row{display:flex;gap:6px;width:100%;box-sizing:border-box;}
+.modal-btn{flex:1;padding:11px 8px;border:none;border-radius:10px;font-size:22px;font-weight:700;cursor:pointer;transition:all 0.15s;line-height:1;}
+.modal-btn.primary{background:color-mix(in srgb,var(--accent) 15%,transparent);color:var(--accent);border:2px solid var(--accent);}
 .modal-btn.secondary{background:var(--surface);color:var(--muted2);border:1px solid var(--border);}
 .modal-btn:active{transform:scale(0.97);}
 .simple-modal-box{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:28px 20px 20px;text-align:center;max-width:300px;width:100%;margin:auto;}
@@ -696,17 +704,17 @@ body::after{content:'';position:fixed;bottom:0;left:0;right:0;height:env(safe-ar
 .setup-btn-row{display:flex;gap:8px;width:100%;max-width:420px;margin-top:8px;padding-bottom:env(safe-area-inset-bottom,40px);}
 .names-back-flex{flex:1;padding:10px;}
 /* ── Bouton confidentialité settings ── */
-.btn-privacy-link{margin-top:8px;opacity:0.6;font-size:10px;}
+.btn-privacy-link{margin-top:8px;margin-bottom:32px;opacity:0.6;font-size:10px;}
 /* ── Privacy modal ── */
-.st-privacy-box{border-radius:16px;max-width:460px;margin:auto;max-height:80vh;overflow-y:auto;}
-.st-privacy-body{font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--muted2);line-height:1.7;text-align:left;}
-.st-privacy-intro{color:var(--text);font-size:13px;margin-bottom:12px;font-weight:700;}
+
+.st-privacy-body{font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--muted2);line-height:1.9;text-align:left;padding:0 4px;}
+.st-privacy-intro{color:var(--text);font-size:13px;margin-bottom:20px;font-weight:700;}
 .privacy-strong{color:var(--accent2);}
-.st-privacy-p{margin-bottom:10px;}
-.st-privacy-p-last{margin-bottom:16px;}
+.st-privacy-p{margin-bottom:16px;}
+.st-privacy-p-last{margin-bottom:24px;}
 .btn-clear-all{margin-top:6px;padding:8px 14px;background:color-mix(in srgb,var(--red) 15%,transparent);border:1px solid var(--red);border-radius:var(--radius);color:var(--red);font-family:var(--btn-font);font-size:9px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;}
 .st-privacy-date{opacity:0.5;font-size:10px;}
-.st-privacy-close{margin-top:16px;}
+.st-privacy-close{margin-top:24px;}
 /* ── Winner modal ── */
 .winner-modal-box{border-radius:16px;max-width:340px;margin:auto;}
 /* ── Elim modal ── */
@@ -768,7 +776,7 @@ body::after{content:'';position:fixed;bottom:0;left:0;right:0;height:env(safe-ar
 
 <div id="setup-page" class="page active">
   <div class="logo">
-    <button class="logo-gear" onclick="showSettings()">⚙️</button>
+    <button class="logo-gear" onclick="showThemeFromSetup()">🎨</button>
     <div class="logo-mark">
       <svg width="36" height="36" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
         <line x1="14" y1="38" x2="50" y2="38" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
@@ -844,8 +852,8 @@ body::after{content:'';position:fixed;bottom:0;left:0;right:0;height:env(safe-ar
 <div id="settings-page" class="page">
   <div class="page-top-spacer"></div>
   <div class="settings-header">
-    <button class="back-btn" onclick="backFromSettings()">←</button>
-    <div class="settings-title">Thème</div>
+    <button class="back-btn" onclick="backFromTheme()">←</button>
+    <div class="settings-title">🎨 Thème</div>
   </div>
   <div class="setup-section">
     <span class="setup-label">Thème visuel</span>
@@ -856,10 +864,13 @@ body::after{content:'';position:fixed;bottom:0;left:0;right:0;height:env(safe-ar
 </div>
 
 <!-- MODAL CONFIDENTIALITÉ -->
-<div class="modal-overlay hidden" id="privacy-modal">
-  <div class="modal-box st-privacy-box">
-    <div class="modal-handle"></div>
-    <div class="modal-title">Confidentialité</div>
+<div class="page" id="privacy-modal">
+  <div class="page-top-spacer"></div>
+  <div class="settings-header">
+    <button class="back-btn" onclick="closePrivacy()">←</button>
+    <div class="settings-title">🔒 Confidentialité</div>
+  </div>
+  <div class="setup-section">
     <div class="st-privacy-body">
       <p class="st-privacy-intro">ScoreTrack ne collecte aucune donnée personnelle.</p>
       <p class="st-privacy-p"><strong class="privacy-strong">Stockage local uniquement</strong><br>
@@ -874,7 +885,6 @@ body::after{content:'';position:fixed;bottom:0;left:0;right:0;height:env(safe-ar
       <button class="btn-clear-all" onclick="clearAllData()">🗑 Supprimer toutes les données</button></p>
       <p class="st-privacy-date">Dernière mise à jour : avril 2026</p>
     </div>
-    <button class="modal-btn secondary st-privacy-close" onclick="document.getElementById('privacy-modal').classList.add('hidden')">Fermer</button>
   </div>
 </div>
 
@@ -911,6 +921,9 @@ body::after{content:'';position:fixed;bottom:0;left:0;right:0;height:env(safe-ar
     <button class="bar-btn" onclick="showRecap()">
       <span class="btn-icon">📋</span><span class="btn-label">Récap</span>
     </button>
+    <button class="bar-btn" onclick="showThemeFromGame()">
+      <span class="btn-icon">🎨</span><span class="btn-label">Thème</span>
+    </button>
     <button class="bar-btn danger" onclick="document.getElementById('reset-modal').classList.remove('hidden')">
       <span class="btn-icon">✕</span><span class="btn-label">Reset</span>
     </button>
@@ -931,8 +944,8 @@ body::after{content:'';position:fixed;bottom:0;left:0;right:0;height:env(safe-ar
       </div>
       <div class="modal-keypad" id="modal-keypad"></div>
       <div class="modal-confirm-row">
-        <button class="modal-btn secondary" onclick="closeScoreModal()">Annuler</button>
-        <button class="modal-btn primary" onclick="confirmScoreModal()">Appliquer</button>
+        <button class="modal-btn secondary" onclick="closeScoreModal()">❌</button>
+        <button class="modal-btn primary" onclick="confirmScoreModal()">✅</button>
       </div>
     </div>
   </div>
@@ -1175,10 +1188,19 @@ function showPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.
 function showSetup(){showPage('setup-page');}
 function showSettings(){renderThemeGrid();renderDefPlayers();syncDefPresets();showPage('settings-page');}
 function backFromSettings(){showPage('setup-page');}
-function showPrivacy(){document.getElementById('privacy-modal').classList.remove('hidden');}
+let _themeOrigin='setup';
+function showThemeFromSetup(){_themeOrigin='setup';renderThemeGrid();showPage('settings-page');}
+function showThemeFromGame(){_themeOrigin='game';renderThemeGrid();document.getElementById('game-screen').style.display='none';showPage('settings-page');}
+function backFromTheme(){
+  if(_themeOrigin==='game'){document.getElementById('game-screen').style.display='flex';showPage('game-screen');}
+  else showPage('setup-page');
+}
+function showPrivacy(){_privacyOrigin=document.querySelector('.page.active')?.id||'settings-page';showPage('privacy-modal');}
+let _privacyOrigin='settings-page';
+function closePrivacy(){showPage(_privacyOrigin);}
 function clearAllData(){
   localStorage.clear();
-  document.getElementById('privacy-modal').classList.add('hidden');
+  closePrivacy();
   confirmReset();
 }
 
@@ -1628,6 +1650,7 @@ function buildCard(pi,rot){
   const SWIPE_THRESHOLD=40; // px minimum pour déclencher
 
   zone.addEventListener('touchstart',e=>{
+    if(e.touches.length>1){swipeActive=false;if(holdTimer){clearTimeout(holdTimer);holdTimer=null;}return;}
     e.preventDefault();e.stopPropagation();
     didHold=false;swipeActive=true;
     swipeStartX=e.touches[0].clientX;
@@ -1640,7 +1663,7 @@ function buildCard(pi,rot){
 
   zone.addEventListener('touchend',e=>{
     if(holdTimer){clearTimeout(holdTimer);holdTimer=null;}
-    if(!swipeActive)return;
+    if(!swipeActive||e.touches.length>0)return;
     swipeActive=false;
     if(didHold)return;
 
@@ -1797,12 +1820,23 @@ function fitCard(card){
       const iconSz=Math.max(10,Math.min(ref*0.18,36));
       const labelSz=Math.max(8,Math.min(ref*0.1,18));
       const subSz=Math.max(7,Math.min(ref*0.075,13));
-      const scoreSzTag=Math.max(10,Math.min(ref*0.22,32));
       if(iconEl)iconEl.style.fontSize=iconSz+'px';
       if(labelEl)labelEl.style.fontSize=labelSz+'px';
       if(nameEl)nameEl.style.fontSize=subSz+'px';
       if(rankEl)rankEl.style.fontSize=subSz+'px';
-      if(scoreEl)scoreEl.style.fontSize=scoreSzTag+'px';
+      if(scoreEl){
+        const tagStr=scoreEl.textContent||'0';
+        const tagChars=tagStr.replace(/\s/g,'').length||1;
+        const tagRatio=tagChars<=2?0.45:tagChars<=3?0.32:tagChars<=4?0.24:tagChars<=5?0.19:0.15;
+        let tagSz=Math.max(10,Math.min(ref*tagRatio,usW*0.7));
+        scoreEl.style.fontSize=tagSz+'px';
+        const tagAvailW=tag.offsetWidth*0.80||usW*0.80;
+        let tagTries=0;
+        while(scoreEl.scrollWidth>tagAvailW&&tagSz>10&&tagTries++<12){
+          tagSz=Math.max(10,tagSz*0.88);
+          scoreEl.style.fontSize=tagSz+'px';
+        }
+      }
     }
 }
 function fitTexts(){
@@ -1825,9 +1859,16 @@ function onResize(){
   if(document.getElementById('game-screen').style.display==='flex'){
     fixLateral();setTimeout(fitTexts,50);
   }
+  // Repositionner le modal s'il est ouvert
+  const overlay=document.getElementById('score-modal');
+  if(overlay&&!overlay.classList.contains('hidden')&&overlay._modalRot&&modalPlayerIdx>=0&&players[modalPlayerIdx]){
+    setTimeout(()=>openScoreModal(modalPlayerIdx,overlay._modalRot),50);
+  }
 }
 window.addEventListener('resize',onResize);
-window.addEventListener('orientationchange',()=>setTimeout(onResize,200));
+window.addEventListener('orientationchange',()=>setTimeout(onResize,300));
+// Pas d'action supplémentaire sur orientationchange — les modaux g/d gèrent nativement
+function onOrientationChange(){ setTimeout(onResize, 200); }
 
 // ── ADJUST ────────────────────────────────────────────────────────
 function adjust(i,delta,zone){
@@ -2008,9 +2049,13 @@ function openScoreModal(pi, forceRot){
   if(rotEl)rotEl.removeAttribute('style');
   if(box)box.removeAttribute('style');
   // Facteur d'échelle basé sur la petite dimension — identique pour tous les modaux
-  const _side = Math.min(window.innerWidth, window.innerHeight);
+  const _side = Math.min(window.innerWidth, window.innerHeight, 320);
   const _p = _side / 390;
-  if(box) box.style.borderRadius=`${Math.round(16*_p)}px ${Math.round(16*_p)}px 0 0`;
+  if(rot==='rot-180'){
+    if(box) box.style.borderRadius=`0 0 ${Math.round(16*_p)}px ${Math.round(16*_p)}px`;
+  } else {
+    if(box) box.style.borderRadius=`${Math.round(16*_p)}px ${Math.round(16*_p)}px 0 0`;
+  }
   const _scoreDisp = overlay.querySelector('.modal-score-display');
   const _player    = overlay.querySelector('.modal-player');
   const _title     = overlay.querySelector('.modal-title');
@@ -2028,7 +2073,7 @@ function openScoreModal(pi, forceRot){
     overlay.style.alignItems='flex-start';
     rotEl.style.transform='rotate(180deg)';
     {
-      const side=Math.min(window.innerWidth,window.innerHeight), p=side/390;
+      const side=Math.min(window.innerWidth,window.innerHeight,320), p=side/390;
       if(box){box.style.width=side+'px';box.style.maxWidth=side+'px';box.style.maxHeight=side+'px';box.style.overflowY='auto';box.style.display='';box.style.flexDirection='';box.style.height='';box.style.transform='';box.style.transformOrigin='';box.style.position='';}
       rotEl.style.padding=`${Math.round(6*p)}px ${Math.round(12*p)}px ${Math.round(12*p)}px`;rotEl.style.display='';rotEl.style.flexDirection='';rotEl.style.flex='';rotEl.style.minHeight='';rotEl.style.overflow='';
       const ttl=overlay.querySelector('.modal-title'),plr=overlay.querySelector('.modal-player'),scd=overlay.querySelector('.modal-score-display'),hdl=overlay.querySelector('.modal-handle'),sgr=overlay.querySelector('.modal-sign-row');
@@ -2043,7 +2088,7 @@ function openScoreModal(pi, forceRot){
     }
   } else if(rot==='rot-0'){
     {
-      const side=Math.min(window.innerWidth,window.innerHeight), p=side/390;
+      const side=Math.min(window.innerWidth,window.innerHeight,320), p=side/390;
       if(box){box.style.width=side+'px';box.style.maxWidth=side+'px';box.style.maxHeight=side+'px';box.style.overflowY='auto';box.style.display='';box.style.flexDirection='';box.style.height='';box.style.transform='';box.style.transformOrigin='';box.style.position='';}
       rotEl.style.padding=`${Math.round(6*p)}px ${Math.round(12*p)}px ${Math.round(12*p)}px`;rotEl.style.display='';rotEl.style.flexDirection='';rotEl.style.flex='';rotEl.style.minHeight='';rotEl.style.overflow='';
       const ttl=overlay.querySelector('.modal-title'),plr=overlay.querySelector('.modal-player'),scd=overlay.querySelector('.modal-score-display'),hdl=overlay.querySelector('.modal-handle'),sgr=overlay.querySelector('.modal-sign-row');
@@ -2058,7 +2103,7 @@ function openScoreModal(pi, forceRot){
     }
   } else if(rot==='rot-l'||rot==='rot-r'){
     const vw=window.innerWidth,vh=window.innerHeight;
-    const side=Math.min(vw,vh);
+    const side=Math.min(vw,vh,320);
     const p=side/390;
     const isLeft=rot==='rot-l';
     const deg=isLeft?90:-90;
@@ -2121,6 +2166,7 @@ function openScoreModal(pi, forceRot){
     const keypad=overlay.querySelector('.modal-keypad');
     if(keypad){ keypad.style.marginBottom='8px'; keypad.style.flex=''; keypad.style.height=''; keypad.style.minHeight=''; keypad.style.overflow=''; keypad.style.gridTemplateRows=''; keypad.style.gap=''; }
   }
+  // (rot top/bottom non utilisé)
   // Afficher backdrop et modal
   const bd=document.getElementById('modal-backdrop');
   if(bd){ bd.classList.remove('hidden'); bd.style.background='rgba(20,14,8,0.88)'; }
@@ -2225,6 +2271,7 @@ function closeScoreModal(){
 
   function startDrag(e){
     if(overlay.classList.contains('hidden')) return;
+    if(e.touches.length>1) return; // laisser le pinch-zoom
     // Exclure les touches sur keypad et boutons
     if(e.target.closest('.modal-keypad,.modal-confirm-row,.modal-sign-row')) return;
     _active=true; _vel=0; _lastD=0; _lastT=performance.now();
@@ -2493,6 +2540,7 @@ function confirmReset(){
   function toggleBar(){ bar.classList.contains('open') ? snapClose() : snapOpen(); }
 
   handle.addEventListener('touchstart', e => {
+    if(e.touches.length>1) return;
     e.stopPropagation();
     startY = e.touches[0].clientY;
     startH = bar.classList.contains('open') ? getOpenH() : 0;
@@ -2520,8 +2568,12 @@ function confirmReset(){
 
   handle.addEventListener('click', e => { toggleBar(); e.stopPropagation(); });
   document.addEventListener('touchstart', e => {
-    if(bar.classList.contains('open') && !bar.contains(e.target)) snapClose();
-  }, { passive:true });
+    if (e.touches.length > 1) { window._isZooming = true; }
+  }, { passive: true });
+
+  document.addEventListener('touchend', e => {
+    if (e.touches.length === 0) { setTimeout(() => { window._isZooming = false; }, 200); }
+  }, { passive: true });
 
   window._barInit = function(){ _fitCache={}; fitTexts(); };
   window.addEventListener('resize', () => { _openH=0; _fitCache={}; fitTexts(); });
@@ -2544,9 +2596,13 @@ function confirmReset(){
   // max-presets supprimé — objectif géré par selectObjectif()
   // max-custom supprimé
   const kp=document.getElementById('modal-keypad');
-  [1,2,3,4,5,6,7,8,9,'⌫',0,'00'].forEach(k=>{
+  [7,8,9,4,5,6,1,2,3,'⌫',0,'00'].forEach(k=>{
     const b=document.createElement('button');b.className='key-btn'+(k==='⌫'?' del':'');b.textContent=k;
-    b.addEventListener('touchstart',e=>{e.preventDefault();pressKey(k);},{passive:false});
+    b.addEventListener('touchstart', e => {
+      if (e.touches.length > 1 || window._isZooming) return; // pinch-zoom → ignorer
+      e.preventDefault(); 
+      pressKey(k);
+    }, { passive: false });
     b.addEventListener('click',e=>{if(e.isTrusted&&!('ontouchstart' in window))pressKey(k);});kp.appendChild(b);
   });
   document.getElementById('objectif-custom').addEventListener('input',()=>checkGoBtn());
