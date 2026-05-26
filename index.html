@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
@@ -162,7 +162,7 @@ self.addEventListener('fetch', e => {
 </script>
 <meta name="apple-mobile-web-app-title" content="ScoreTrack">
 <meta name="theme-color" id="meta-theme-color" content="#020d12">
-<meta name="app-version" content="39">
+<meta name="app-version" content="65">
 <link rel="manifest" id="dyn-manifest">
 <link rel="apple-touch-icon" id="dyn-touch-icon">
 <link rel="apple-touch-startup-image" id="dyn-splash">
@@ -358,6 +358,7 @@ self.addEventListener('fetch', e => {
 [data-theme="ldm-day"] .logo-sub{color:var(--muted2);}
 [data-theme="ldm-day"] .modal-box,[data-theme="ldm-day"] .simple-modal-box{background:var(--surface);color:var(--text);}
 [data-theme="ldm-day"] .winner-name,[data-theme="ldm-day"] .winner-sub{color:var(--text);}
+.reset-sub{margin-bottom:4px;}
 [data-theme="ldm-day"] .score.crit{animation:scoreBlink 0.9s ease-in-out infinite;}
 
 html{overflow-x:hidden;width:100%;min-height:100dvh;background:var(--bg-grad);background-color:var(--bg);}
@@ -416,6 +417,7 @@ body::after{content:'';position:fixed;bottom:0;left:0;right:0;height:env(safe-ar
 .settings-header{display:flex;align-items:center;gap:14px;margin-bottom:32px;width:100%;max-width:420px;}
 .back-btn{background:none;border:1.5px solid var(--border);border-radius:var(--radius);color:var(--muted2);font-size:16px;width:36px;height:36px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .settings-title{font-family:var(--btn-font);font-size:22px;font-weight:700;color:var(--accent);text-shadow:0 0 10px var(--accent);letter-spacing:0.1em;text-transform:uppercase;}
+#privacy-modal .settings-title{font-size:16px;letter-spacing:0.06em;padding-right:72px;}
 .themes-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;width:100%;max-width:420px;margin-bottom:8px;}.theme-card{border-radius:10px;padding:14px 12px 10px;cursor:pointer;border:2px solid transparent;transition:all 0.18s;position:relative;}
 .theme-card.selected{border-color:var(--accent);box-shadow:0 0 16px var(--accent);}
 .theme-card-name{font-family:'Inter',sans-serif;font-size:12px;font-weight:700;margin-bottom:6px;}
@@ -644,6 +646,13 @@ body::after{content:'';position:fixed;bottom:0;left:0;right:0;height:env(safe-ar
   --card-texture-size:18px 18px;--card-texture-opacity:1;}
 
 /* arcade : scanlines horizontales — même motif que bg-grad */
+@keyframes elimNoisePulse{
+  0%{opacity:0}
+  10%{opacity:0.18}
+  65%{opacity:0.18}
+  100%{opacity:0}
+}
+#elim-anim-noise{opacity:1;}
 [data-theme="arcade"]{
   --card-texture:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Crect y='0' width='4' height='2' fill='%23ffdc00' opacity='0.07'/%3E%3C/svg%3E");
   --card-texture-size:4px 4px;--card-texture-opacity:1;}
@@ -859,6 +868,7 @@ body::after{content:'';position:fixed;bottom:0;left:0;right:0;height:env(safe-ar
 .btn-clear-all{margin-top:6px;padding:8px 14px;background:color-mix(in srgb,var(--red) 15%,transparent);border:1px solid var(--red);border-radius:var(--radius);color:var(--red);font-family:var(--btn-font);font-size:9px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;}
 .st-privacy-date{opacity:0.5;font-size:10px;}
 .st-privacy-close{margin-top:24px;}
+#btn-privacy-accept{margin-top:24px;margin-bottom:8px;}
 /* ── Winner modal ── */
 .winner-modal-box{border-radius:16px;max-width:340px;width:calc(100% - 48px);margin:auto;padding:28px 24px 24px;display:flex;flex-direction:column;align-items:center;}
 /* ── Elim modal ── */
@@ -869,13 +879,13 @@ body::after{content:'';position:fixed;bottom:0;left:0;right:0;height:env(safe-ar
 
 /* ── LANG PICKER ── */
 .logo-lang{position:absolute;right:20px;top:calc(env(safe-area-inset-top,44px) + 34px);z-index:300;}
-.lang-flag-btn{background:none;border:1.5px solid var(--border);border-radius:8px;padding:5px 10px;font-size:24px;cursor:pointer;line-height:1;transition:all 0.18s;display:flex;align-items:center;justify-content:center;gap:4px;width:62px;box-sizing:border-box;}
+.lang-flag-btn{background:none;border:1.5px solid var(--border);border-radius:8px;padding:5px 10px;font-size:24px;cursor:pointer;line-height:1;transition:all 0.18s;display:flex;align-items:center;justify-content:center;gap:4px;width:62px;box-sizing:border-box;color:var(--text)!important;}
 .lang-flag-btn:active{transform:scale(0.92);}
 .lang-flag-btn::after{content:'▾';font-size:9px;color:var(--muted2);font-family:'Inter',sans-serif;}
-.lang-dropdown{position:absolute;top:calc(100% + 6px);right:0;left:auto;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.5);min-width:160px;overflow:hidden;z-index:9999;animation:langFadeIn 0.14s ease;}
+.lang-dropdown{position:absolute;top:calc(100% + 6px);right:0;left:auto;background:var(--surface);color:var(--text);border:1.5px solid var(--border);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.5);min-width:160px;overflow:hidden;z-index:9999;animation:langFadeIn 0.14s ease;color-scheme:normal;}
 @keyframes langFadeIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
 .lang-dropdown.hidden{display:none;}
-.lang-opt{display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;font-family:'Inter',sans-serif;font-size:13px;color:var(--text);transition:background 0.12s;}
+.lang-opt{display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;font-family:'Inter',sans-serif;font-size:13px;color:var(--text)!important;background:var(--surface)!important;transition:background 0.12s;}
 .lang-opt:hover,.lang-opt:active{background:var(--surface2);}
 .lang-opt.active{color:var(--accent);}
 .lang-opt-flag{font-size:18px;line-height:1;}
@@ -940,7 +950,7 @@ body::after{content:'';position:fixed;bottom:0;left:0;right:0;height:env(safe-ar
   flex-direction:column;align-items:center;justify-content:center;
   gap:16px;pointer-events:auto;overflow:hidden;cursor:pointer;
 }
-#elim-anim-noise{position:absolute;inset:0;z-index:1;width:100%;height:100%;pointer-events:none;}
+#elim-anim-noise{position:absolute;inset:0;z-index:5;width:100%;height:100%;pointer-events:none;}
 #elim-anim-skull{position:absolute;z-index:3;line-height:1;transform-origin:center center;font-size:4px;}
 #elim-anim-texts{
   position:relative;z-index:4;
@@ -989,7 +999,7 @@ body::after{content:'';position:fixed;bottom:0;left:0;right:0;height:env(safe-ar
 }
 #win-anim-canvas{position:absolute;inset:0;z-index:1;width:100%;height:100%;pointer-events:none;}
 #win-anim-texts{position:relative;z-index:4;display:flex;flex-direction:column;align-items:center;gap:14px;padding:0 24px;max-width:100%;}
-#win-anim-trophy{font-size:clamp(80px,20vw,140px);line-height:1;opacity:0;transform:scale(0.05) rotate(-30deg);}
+#win-anim-trophy-canvas{opacity:0;transform:scale(0.05) rotate(-30deg);width:clamp(80px,20vw,140px);height:clamp(80px,20vw,140px);}
 #win-anim-name{
   font-family:var(--btn-font);font-size:clamp(28px,8vw,60px);font-weight:900;
   color:#ffd700;text-transform:uppercase;letter-spacing:0.10em;
@@ -1100,7 +1110,7 @@ body::after{content:'';position:fixed;bottom:0;left:0;right:0;height:env(safe-ar
       <input class="points-input" id="objectif-custom" type="number" inputmode="numeric" placeholder="Autre valeur…">
     </div>
     <!-- Options victoire (visibles seulement si mode=win) -->
-    <div id="win-options" style="display:none">
+    <div id="win-options">
       <div class="win-option-row" onclick="toggleSingleWinner()">
         <div class="win-option-toggle" id="toggle-single-winner"></div>
         <div class="win-option-texts">
@@ -1142,8 +1152,12 @@ body::after{content:'';position:fixed;bottom:0;left:0;right:0;height:env(safe-ar
 <div class="page" id="privacy-modal">
   <div class="page-top-spacer"></div>
   <div class="settings-header">
-    <button class="back-btn" onclick="closePrivacy()">←</button>
+    <button class="back-btn" id="privacy-back-btn" onclick="closePrivacy()">←</button>
     <div class="settings-title" id="privacy-title-txt">🔒 Confidentialité</div>
+  </div>
+  <div class="logo-lang" id="lang-picker-privacy">
+    <button class="lang-flag-btn" id="lang-flag-btn-privacy" onclick="toggleLangDropdownPrivacy()">🇬🇧</button>
+    <div class="lang-dropdown hidden" id="lang-dropdown-privacy"></div>
   </div>
   <div class="setup-section">
     <div class="st-privacy-body">
@@ -1156,9 +1170,10 @@ body::after{content:'';position:fixed;bottom:0;left:0;right:0;height:env(safe-ar
       <span id="privacy-s3">ScoreTrack n'utilise pas de cookies. Le localStorage employé est strictement nécessaire au fonctionnement de l'application et est exempté de consentement selon la réglementation RGPD et la directive ePrivacy.</span></p>
       <p class="st-privacy-p"><strong class="privacy-strong" id="privacy-s4t">Vos droits</strong><br>
       <span id="privacy-s4">Vous pouvez supprimer toutes les données stockées à tout moment en effaçant les données du site dans les paramètres de votre navigateur.</span></p>
-      <p class="st-privacy-p st-privacy-p-last"><strong class="privacy-strong" id="privacy-s5t">Effacer mes données</strong><br>
-      <button class="btn-clear-all" id="btn-cleardata" onclick="clearAllData()">🗑 Supprimer toutes les données</button></p>
+      <div id="privacy-s5-section"><p class="st-privacy-p st-privacy-p-last"><strong class="privacy-strong" id="privacy-s5t">Effacer mes données</strong><br>
+      <button class="btn-clear-all" id="btn-cleardata" onclick="clearAllData()">🗑 Supprimer toutes les données</button></p></div>
       <p class="st-privacy-date" id="privacy-date">Dernière mise à jour : avril 2026</p>
+      <button class="go-btn hidden" id="btn-privacy-accept" onclick="acceptPrivacy()"></button>
     </div>
   </div>
 </div>
@@ -1240,7 +1255,7 @@ body::after{content:'';position:fixed;bottom:0;left:0;right:0;height:env(safe-ar
 
 <div class="modal-overlay hidden" id="reset-modal">
   <div class="simple-modal-box">
-    <div class="winner-sub" style="margin-bottom:4px;" id="reset-sub-txt"></div>
+    <div class="winner-sub reset-sub" id="reset-sub-txt"></div>
     <div class="simple-modal-btns">
       <button class="modal-btn primary" id="btn-newgame-reset" onclick="startNewGameSameSetup()"><span id="reset-btn-newgame">Nouvelle partie</span></button>
       <button class="modal-btn secondary" id="btn-menu-reset" onclick="confirmReset()"><span id="reset-btn-menu">Retour au menu</span></button>
@@ -1407,13 +1422,14 @@ const T = {
     privacyS2t:'No transmission',
     privacyS2:'No data is sent to a server, shared with third parties, or used for advertising or analytics.',
     privacyS3t:'Cookies',
-    privacyS3:'ScoreTrack does not use cookies.',
+    privacyS3:'ScoreTrack does not use cookies. The localStorage used is strictly necessary for the app to function and is exempt from consent requirements under GDPR and the ePrivacy Directive.',
     privacyS4t:'Your rights',
     privacyS4:'You can delete all stored data at any time by clearing site data in your browser settings.',
     privacyS5t:'Delete my data',
     btnDeleteData:'🗑 Delete all data',
     privacyDate:'Last updated: April 2026',
     btnPrivacy:'🔒 Privacy policy',
+    btnGotIt:'Got it',
     // misc
     winner:'Winner',
     lastSurvivor:'Last survivor · Score: ',
@@ -1530,6 +1546,7 @@ const T = {
     btnDeleteData:'🗑 Supprimer toutes les données',
     privacyDate:'Dernière mise à jour : avril 2026',
     btnPrivacy:'🔒 Politique de confidentialité',
+    btnGotIt:'J\'ai compris',
     winner:'Vainqueur',
     lastSurvivor:'Dernier survivant · Score : ',
     savedDefault:'✓ Sauvegardé !',
@@ -1620,13 +1637,14 @@ const T = {
     privacyS2t:'Sin transmisión',
     privacyS2:'Ningún dato se envía a servidores ni se comparte con terceros.',
     privacyS3t:'Cookies',
-    privacyS3:'ScoreTrack no utiliza cookies.',
+    privacyS3:'ScoreTrack no utiliza cookies. El localStorage utilizado es estrictamente necesario para el funcionamiento de la aplicación y está exento de consentimiento según el RGPD y la directiva ePrivacy.',
     privacyS4t:'Sus derechos',
     privacyS4:'Puede eliminar todos los datos almacenados borrando los datos del sitio en la configuración de su navegador.',
     privacyS5t:'Eliminar mis datos',
     btnDeleteData:'🗑 Eliminar todos los datos',
     privacyDate:'Última actualización: abril 2026',
     btnPrivacy:'🔒 Política de privacidad',
+    btnGotIt:'Entendido',
     winner:'Ganador',
     lastSurvivor:'Último superviviente · Puntuación: ',
     savedDefault:'✓ ¡Guardado!',
@@ -1745,13 +1763,14 @@ const T = {
     privacyS2t:'Keine Übertragung',
     privacyS2:'Es werden keine Daten an Server gesendet oder an Dritte weitergegeben.',
     privacyS3t:'Cookies',
-    privacyS3:'ScoreTrack verwendet keine Cookies.',
+    privacyS3:'ScoreTrack verwendet keine Cookies. Der verwendete localStorage ist für die Funktion der App unbedingt erforderlich und gemäß DSGVO und ePrivacy-Richtlinie von der Einwilligungspflicht befreit.',
     privacyS4t:'Ihre Rechte',
     privacyS4:'Sie können alle gespeicherten Daten jederzeit löschen.',
     privacyS5t:'Daten löschen',
     btnDeleteData:'🗑 Alle Daten löschen',
     privacyDate:'Letzte Aktualisierung: April 2026',
     btnPrivacy:'🔒 Datenschutzrichtlinie',
+    btnGotIt:'Verstanden',
     winner:'Gewinner',
     lastSurvivor:'Letzter Überlebender · Punkte: ',
     savedDefault:'✓ Gespeichert!',
@@ -1870,13 +1889,14 @@ const T = {
     privacyS2t:'Nessuna trasmissione',
     privacyS2:'Nessun dato viene inviato a server o condiviso con terze parti.',
     privacyS3t:'Cookie',
-    privacyS3:'ScoreTrack non utilizza cookie.',
+    privacyS3:'ScoreTrack non utilizza cookie. Il localStorage utilizzato è strettamente necessario al funzionamento dell\'app ed è esente dal consenso ai sensi del GDPR e della direttiva ePrivacy.',
     privacyS4t:'I tuoi diritti',
     privacyS4:'Puoi eliminare tutti i dati in qualsiasi momento dalle impostazioni del browser.',
     privacyS5t:'Elimina i miei dati',
     btnDeleteData:'🗑 Elimina tutti i dati',
     privacyDate:'Ultimo aggiornamento: aprile 2026',
     btnPrivacy:'🔒 Informativa sulla privacy',
+    btnGotIt:'Capito',
     winner:'Vincitore',
     lastSurvivor:'Ultimo sopravvissuto · Punteggio: ',
     savedDefault:'✓ Salvato!',
@@ -1995,13 +2015,14 @@ const T = {
     privacyS2t:'Sem transmissão',
     privacyS2:'Nenhum dado é enviado a servidores ou compartilhado com terceiros.',
     privacyS3t:'Cookies',
-    privacyS3:'ScoreTrack não usa cookies.',
+    privacyS3:'ScoreTrack não usa cookies. O localStorage utilizado é estritamente necessário para o funcionamento da aplicação e está isento de consentimento nos termos do RGPD e da diretiva ePrivacy.',
     privacyS4t:'Seus direitos',
     privacyS4:'Você pode excluir todos os dados a qualquer momento nas configurações do navegador.',
     privacyS5t:'Excluir meus dados',
     btnDeleteData:'🗑 Excluir todos os dados',
     privacyDate:'Última atualização: abril de 2026',
     btnPrivacy:'🔒 Política de privacidade',
+    btnGotIt:'Entendido',
     winner:'Vencedor',
     lastSurvivor:'Último sobrevivente · Pontuação: ',
     savedDefault:'✓ Salvo!',
@@ -2120,13 +2141,14 @@ const T = {
     privacyS2t:'Geen verzending',
     privacyS2:'Er worden geen gegevens verzonden of gedeeld.',
     privacyS3t:'Cookies',
-    privacyS3:'ScoreTrack gebruikt geen cookies.',
+    privacyS3:'ScoreTrack gebruikt geen cookies. De gebruikte localStorage is strikt noodzakelijk voor de werking van de app en is vrijgesteld van toestemming onder de AVG en de ePrivacy-richtlijn.',
     privacyS4t:'Uw rechten',
     privacyS4:'U kunt alle opgeslagen gegevens verwijderen in de browserinstellingen.',
     privacyS5t:'Mijn gegevens verwijderen',
     btnDeleteData:'🗑 Alle gegevens verwijderen',
     privacyDate:'Laatste update: april 2026',
     btnPrivacy:'🔒 Privacybeleid',
+    btnGotIt:'Begrepen',
     winner:'Winnaar',
     lastSurvivor:'Laatste overlevende · Punten: ',
     savedDefault:'✓ Opgeslagen!',
@@ -2245,13 +2267,14 @@ const T = {
     privacyS2t:'Brak transmisji',
     privacyS2:'Żadne dane nie są wysyłane do serwerów.',
     privacyS3t:'Pliki cookie',
-    privacyS3:'ScoreTrack nie używa plików cookie.',
+    privacyS3:'ScoreTrack nie używa plików cookie. Używany localStorage jest niezbędny do działania aplikacji i jest zwolniony z obowiązku uzyskania zgody na mocy RODO i dyrektywy ePrivacy.',
     privacyS4t:'Twoje prawa',
     privacyS4:'Możesz usunąć wszystkie dane w ustawieniach przeglądarki.',
     privacyS5t:'Usuń moje dane',
     btnDeleteData:'🗑 Usuń wszystkie dane',
     privacyDate:'Ostatnia aktualizacja: kwiecień 2026',
     btnPrivacy:'🔒 Polityka prywatności',
+    btnGotIt:'Rozumiem',
     winner:'Zwycięzca',
     lastSurvivor:'Ostatni ocalały · Punkty: ',
     savedDefault:'✓ Zapisano!',
@@ -2370,13 +2393,14 @@ const T = {
     privacyS2t:'Нет передачи данных',
     privacyS2:'Никакие данные не отправляются на серверы.',
     privacyS3t:'Cookie',
-    privacyS3:'ScoreTrack не использует cookie.',
+    privacyS3:'ScoreTrack не использует cookie. Используемый localStorage необходим для работы приложения и освобождён от требования согласия согласно GDPR и директиве ePrivacy.',
     privacyS4t:'Ваши права',
     privacyS4:'Вы можете удалить все данные в настройках браузера.',
     privacyS5t:'Удалить мои данные',
     btnDeleteData:'🗑 Удалить все данные',
     privacyDate:'Последнее обновление: апрель 2026',
     btnPrivacy:'🔒 Политика конфиденциальности',
+    btnGotIt:'Понятно',
     winner:'Победитель',
     lastSurvivor:'Последний выживший · Очки: ',
     savedDefault:'✓ Сохранено!',
@@ -2495,13 +2519,14 @@ const T = {
     privacyS2t:'无数据传输',
     privacyS2:'不向服务器发送任何数据。',
     privacyS3t:'Cookie',
-    privacyS3:'ScoreTrack不使用Cookie。',
+    privacyS3:'ScoreTrack不使用Cookie。所使用的localStorage严格服务于应用功能，根据GDPR及ePrivacy指令无需用户同意。',
     privacyS4t:'您的权利',
     privacyS4:'您可以在浏览器设置中随时删除所有数据。',
     privacyS5t:'删除我的数据',
     btnDeleteData:'🗑 删除所有数据',
     privacyDate:'最后更新：2026年4月',
     btnPrivacy:'🔒 隐私政策',
+    btnGotIt:'知道了',
     winner:'胜者',
     lastSurvivor:'最后幸存者 · 分数：',
     savedDefault:'✓ 已保存！',
@@ -2620,13 +2645,14 @@ const T = {
     privacyS2t:'データ転送なし',
     privacyS2:'サーバーにデータは送信されません。',
     privacyS3t:'Cookie',
-    privacyS3:'ScoreTrackはCookieを使用しません。',
+    privacyS3:'ScoreTrackはCookieを使用しません。使用するlocalStorageはアプリの動作に必要不可欠であり、GDPRおよびePrivacy指令のもと同意不要です。',
     privacyS4t:'あなたの権利',
     privacyS4:'ブラウザの設定でいつでもすべてのデータを削除できます。',
     privacyS5t:'データを削除',
     btnDeleteData:'🗑 すべてのデータを削除',
     privacyDate:'最終更新：2026年4月',
     btnPrivacy:'🔒 プライバシーポリシー',
+    btnGotIt:'わかりました',
     winner:'優勝者',
     lastSurvivor:'最後の生存者 · スコア：',
     savedDefault:'✓ 保存しました！',
@@ -2745,13 +2771,14 @@ const T = {
     privacyS2t:'데이터 전송 없음',
     privacyS2:'서버로 데이터를 전송하지 않습니다.',
     privacyS3t:'쿠키',
-    privacyS3:'ScoreTrack은 쿠키를 사용하지 않습니다.',
+    privacyS3:'ScoreTrack은 쿠키를 사용하지 않습니다. 사용되는 localStorage는 앱 기능에 필수적이며 GDPR 및 ePrivacy 지침에 따라 동의가 면제됩니다.',
     privacyS4t:'귀하의 권리',
     privacyS4:'브라우저 설정에서 언제든지 모든 데이터를 삭제할 수 있습니다.',
     privacyS5t:'내 데이터 삭제',
     btnDeleteData:'🗑 모든 데이터 삭제',
     privacyDate:'마지막 업데이트: 2026년 4월',
     btnPrivacy:'🔒 개인정보 정책',
+    btnGotIt:'알겠습니다',
     winner:'우승자',
     lastSurvivor:'마지막 생존자 · 점수: ',
     savedDefault:'✓ 저장됨!',
@@ -2870,13 +2897,14 @@ const T = {
     privacyS2t:'لا نقل للبيانات',
     privacyS2:'لا تُرسل أي بيانات إلى الخوادم.',
     privacyS3t:'ملفات تعريف الارتباط',
-    privacyS3:'لا يستخدم ScoreTrack ملفات تعريف الارتباط.',
+    privacyS3:'لا يستخدم ScoreTrack ملفات تعريف الارتباط. يُعدّ localStorage المستخدم ضروريًا لعمل التطبيق وهو معفى من متطلبات الموافقة بموجب اللائحة العامة لحماية البيانات وتوجيه ePrivacy.',
     privacyS4t:'حقوقك',
     privacyS4:'يمكنك حذف جميع البيانات في أي وقت من إعدادات المتصفح.',
     privacyS5t:'حذف بياناتي',
     btnDeleteData:'🗑 حذف كل البيانات',
     privacyDate:'آخر تحديث: أبريل 2026',
     btnPrivacy:'🔒 سياسة الخصوصية',
+    btnGotIt:'فهمت',
     winner:'الفائز',
     lastSurvivor:'آخر ناجٍ · النقاط: ',
     savedDefault:'✓ تم الحفظ!',
@@ -2995,13 +3023,14 @@ const T = {
     privacyS2t:'Veri iletimi yok',
     privacyS2:'Sunuculara veri gönderilmez.',
     privacyS3t:'Çerezler',
-    privacyS3:'ScoreTrack çerez kullanmaz.',
+    privacyS3:'ScoreTrack çerez kullanmaz. Kullanılan localStorage, uygulamanın işleyişi için zorunludur ve GDPR ile ePrivacy yönergesi kapsamında onay gerektirmez.',
     privacyS4t:'Haklarınız',
     privacyS4:'Tarayıcı ayarlarından tüm verileri istediğiniz zaman silebilirsiniz.',
     privacyS5t:'Verilerimi sil',
     btnDeleteData:'🗑 Tüm verileri sil',
     privacyDate:'Son güncelleme: Nisan 2026',
     btnPrivacy:'🔒 Gizlilik politikası',
+    btnGotIt:'Anladım',
     winner:'Kazanan',
     lastSurvivor:'Son hayatta kalan · Puan: ',
     savedDefault:'✓ Kaydedildi!',
@@ -3120,13 +3149,14 @@ const T = {
     privacyS2t:'Ingen dataöverföring',
     privacyS2:'Ingen data skickas till servrar.',
     privacyS3t:'Cookies',
-    privacyS3:'ScoreTrack använder inga cookies.',
+    privacyS3:'ScoreTrack använder inga cookies. Det localStorage som används är nödvändigt för appens funktion och är undantaget från samtyckeskravet enligt GDPR och ePrivacy-direktivet.',
     privacyS4t:'Dina rättigheter',
     privacyS4:'Du kan radera all lagrad data när som helst i webbläsarinställningarna.',
     privacyS5t:'Radera mina data',
     btnDeleteData:'🗑 Radera all data',
     privacyDate:'Senast uppdaterad: april 2026',
     btnPrivacy:'🔒 Integritetspolicy',
+    btnGotIt:'Förstått',
     winner:'Vinnare',
     lastSurvivor:'Siste överlevande · Poäng: ',
     savedDefault:'✓ Sparat!',
@@ -3245,13 +3275,14 @@ const T = {
     privacyS2t:'Ingen dataoverførsel',
     privacyS2:'Ingen data sendes til servere.',
     privacyS3t:'Cookies',
-    privacyS3:'ScoreTrack bruger ikke cookies.',
+    privacyS3:'ScoreTrack bruger ikke cookies. Det anvendte localStorage er nødvendigt for appens funktion og er fritaget for samtykkekrav i henhold til GDPR og ePrivacy-direktivet.',
     privacyS4t:'Dine rettigheder',
     privacyS4:'Du kan slette alle gemte data til enhver tid i browserindstillingerne.',
     privacyS5t:'Slet mine data',
     btnDeleteData:'🗑 Slet alle data',
     privacyDate:'Sidst opdateret: april 2026',
     btnPrivacy:'🔒 Privatlivspolitik',
+    btnGotIt:'Forstået',
     winner:'Vinder',
     lastSurvivor:'Sidste overlevende · Point: ',
     savedDefault:'✓ Gemt!',
@@ -3370,13 +3401,14 @@ const T = {
     privacyS2t:'Ei tiedonsiirtoa',
     privacyS2:'Tietoja ei lähetetä palvelimille.',
     privacyS3t:'Evästeet',
-    privacyS3:'ScoreTrack ei käytä evästeitä.',
+    privacyS3:'ScoreTrack ei käytä evästeitä. Käytetty localStorage on sovelluksen toiminnalle välttämätön ja vapautettu suostumusvaatimuksesta GDPR:n ja ePrivacy-direktiivin nojalla.',
     privacyS4t:'Oikeutesi',
     privacyS4:'Voit poistaa kaikki tallennetut tiedot milloin tahansa selaimen asetuksista.',
     privacyS5t:'Poista tietoni',
     btnDeleteData:'🗑 Poista kaikki tiedot',
     privacyDate:'Päivitetty viimeksi: huhtikuu 2026',
     btnPrivacy:'🔒 Tietosuojakäytäntö',
+    btnGotIt:'Ymmärretty',
     winner:'Voittaja',
     lastSurvivor:'Viimeinen selviytyjä · Pisteet: ',
     savedDefault:'✓ Tallennettu!',
@@ -3495,13 +3527,14 @@ const T = {
     privacyS2t:'Ingen dataoverføring',
     privacyS2:'Ingen data sendes til servere.',
     privacyS3t:'Informasjonskapsler',
-    privacyS3:'ScoreTrack bruker ikke informasjonskapsler.',
+    privacyS3:'ScoreTrack bruker ikke informasjonskapsler. Det brukte localStorage er nødvendig for appens funksjon og er fritatt fra samtykkekravet i henhold til GDPR og ePrivacy-direktivet.',
     privacyS4t:'Dine rettigheter',
     privacyS4:'Du kan slette alle lagrede data når som helst i nettleserinnstillingene.',
     privacyS5t:'Slett dataene mine',
     btnDeleteData:'🗑 Slett alle data',
     privacyDate:'Sist oppdatert: april 2026',
     btnPrivacy:'🔒 Personvernregler',
+    btnGotIt:'Forstått',
     winner:'Vinner',
     lastSurvivor:'Siste overlevende · Poeng: ',
     savedDefault:'✓ Lagret!',
@@ -3569,6 +3602,8 @@ function applyLang(code){
   // Bouton drapeau
   const btn = document.getElementById('lang-flag-btn');
   if(btn) btn.firstChild.textContent = lang.flag;
+  const btnP = document.getElementById('lang-flag-btn-privacy');
+  if(btnP) btnP.firstChild.textContent = lang.flag;
 
   // dir RTL pour arabe
   document.documentElement.setAttribute('dir', code==='ar' ? 'rtl' : 'ltr');
@@ -3650,6 +3685,7 @@ function applyLang(code){
   _setText('btn-cleardata',       t('btnDeleteData'));
   _setText('privacy-date',        t('privacyDate'));
   _setText('btn-privacy-txt',     t('btnPrivacy'));
+  _setText('btn-privacy-accept',   t('btnGotIt'));
   renderThemeGrid();
 }
 function _setText(id, val, isHtml=false){
@@ -3743,6 +3779,43 @@ function closeLangDropdown(){
 function closeLangDropdownOutside(e){
   if(!document.getElementById('lang-picker')?.contains(e.target)) closeLangDropdown();
 }
+function renderLangDropdownPrivacy(){
+  const dd=document.getElementById('lang-dropdown-privacy');
+  if(!dd)return;
+  dd.innerHTML='';
+  LANGS.forEach(l=>{
+    const opt=document.createElement('div');
+    opt.className='lang-opt'+(l.code===currentLang?' active':'');
+    opt.innerHTML=`<span class="lang-opt-flag">${l.flag}</span><span class="lang-opt-name">${l.name}</span>${l.code===currentLang?'<span class="lang-opt-check">✓</span>':''}`;
+    opt.addEventListener('click',e=>{
+      e.stopPropagation();
+      closeLangDropdownPrivacy();
+      if(l.code===currentLang)return;
+      currentLang=l.code;
+      settings.lang=l.code;
+      try{localStorage.setItem('scoretrack_settings',JSON.stringify(settings));}catch(err){}
+      applyLang(l.code);
+    });
+    dd.appendChild(opt);
+  });
+}
+function toggleLangDropdownPrivacy(){
+  const dd=document.getElementById('lang-dropdown-privacy');
+  if(!dd)return;
+  if(dd.classList.contains('hidden')){
+    renderLangDropdownPrivacy();
+    dd.classList.remove('hidden');
+    setTimeout(()=>document.addEventListener('click',closeLangDropdownPrivacyOutside,{once:true}),10);
+  } else {
+    closeLangDropdownPrivacy();
+  }
+}
+function closeLangDropdownPrivacy(){
+  document.getElementById('lang-dropdown-privacy')?.classList.add('hidden');
+}
+function closeLangDropdownPrivacyOutside(e){
+  if(!document.getElementById('lang-picker-privacy')?.contains(e.target)) closeLangDropdownPrivacy();
+}
 
 const THEMES=[
   {id:'cyber',    nameKey:'themeCyberpunk',  bg:'#020d12',a:'#00ffe0',b:'#00bfff'},
@@ -3821,6 +3894,7 @@ function loadSettings(){
   // Langue persistée
   currentLang = settings.lang || 'en';
   applyLang(currentLang);
+  checkFirstLaunch();
 
   defPlayers=settings.defPlayers||0;
   defStart=settings.defStart>=0?settings.defStart:-1;
@@ -3976,10 +4050,26 @@ let _themeOrigin='setup';
 function showThemeFromSetup(){_themeOrigin='setup';renderThemeGrid();showPage('settings-page');}
 function showThemeFromGame(){_themeOrigin='game';renderThemeGrid();document.getElementById('game-screen').style.display='none';showPage('settings-page');}
 function backFromTheme(){
-  if(_themeOrigin==='game'){document.getElementById('game-screen').style.display='flex';showPage('game-screen');}
+  if(_themeOrigin==='game'){document.getElementById('game-screen').style.display='flex';showPage('game-screen');fixLateral();setTimeout(fitTexts,50);}
   else showPage('setup-page');
 }
 function showPrivacy(){_privacyOrigin=document.querySelector('.page.active')?.id||'settings-page';showPage('privacy-modal');}
+function acceptPrivacy(){
+  localStorage.setItem('st_privacy_accepted','1');
+  document.getElementById('btn-privacy-accept').classList.add('hidden');
+  document.getElementById('privacy-back-btn').classList.remove('hidden');
+  document.getElementById('privacy-s5-section').classList.remove('hidden');
+  closePrivacy();
+}
+function checkFirstLaunch(){
+  if(!localStorage.getItem('st_privacy_accepted')){
+    _privacyOrigin='setup-page';
+    document.getElementById('privacy-back-btn').classList.add('hidden');
+    document.getElementById('btn-privacy-accept').classList.remove('hidden');
+    document.getElementById('privacy-s5-section').classList.add('hidden');
+    showPage('privacy-modal');
+  }
+}
 let _privacyOrigin='settings-page';
 function closePrivacy(){showPage(_privacyOrigin);}
 function clearAllData(){
@@ -4682,6 +4772,11 @@ function onResize(){
 }
 window.addEventListener('resize',onResize);
 window.addEventListener('orientationchange',()=>setTimeout(onResize,300));
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden && document.getElementById('game-screen').style.display==='flex'){
+    fixLateral();setTimeout(fitTexts,50);
+  }
+});
 // Pas d'action supplémentaire sur orientationchange — les modaux g/d gèrent nativement
 
 // ── ADJUST ────────────────────────────────────────────────────────
@@ -5666,91 +5761,64 @@ function exportRecapPDF(){
     return curve;
   }
 
-  // Noise canvas
+  // Noise : remplacé par animation CSS (plus léger)
   let noiseRAF=null;
   function startNoise(startTime,totalDuration,rotDeg){
     const canvas=document.getElementById('elim-anim-noise');
-    canvas.width=window.innerWidth; canvas.height=window.innerHeight;
     const ctx=canvas.getContext('2d');
-    function loop(){
-      const p=Math.min((performance.now()-startTime)/totalDuration,1);
-      let intensity;
-      if      (p<0.10) intensity=p/0.10;
-      else if (p<0.65) intensity=1;
-      else             intensity=1-(p-0.65)/0.35;
-      intensity=Math.max(0,intensity);
-      const id=ctx.createImageData(canvas.width,canvas.height);
-      const d=id.data;
-      for(let i=0;i<d.length;i+=4){
-        const lit=Math.random()<intensity*0.04;
-        const v=lit?200+Math.random()*55:0;
-        d[i]=d[i+1]=d[i+2]=v;
-        d[i+3]=lit?Math.floor(180+v*0.3*intensity):Math.floor(240*intensity);
-      }
-      if(intensity>0.2){
-        const n=Math.floor(intensity*3);
-        const vertical = rotDeg===90 || rotDeg===-90;
-        for(let l=0;l<n;l++){
-          if(vertical){
-            // Scanlines verticales pour rot-l / rot-r
-            const lx=Math.floor(Math.random()*canvas.width);
-            const lw=1+Math.floor(Math.random()*2);
-            for(let y=0;y<canvas.height;y++)
-              for(let dx=0;dx<lw&&lx+dx<canvas.width;dx++){
-                const idx=(y*canvas.width+(lx+dx))*4;
-                d[idx]=d[idx+1]=d[idx+2]=255;d[idx+3]=Math.floor(160*intensity);
-              }
-          } else {
-            // Scanlines horizontales pour rot-0 / rot-180
-            const ly=Math.floor(Math.random()*canvas.height);
-            const lh=1+Math.floor(Math.random()*2);
-            for(let x=0;x<canvas.width;x++)
-              for(let dy=0;dy<lh&&ly+dy<canvas.height;dy++){
-                const idx=((ly+dy)*canvas.width+x)*4;
-                d[idx]=d[idx+1]=d[idx+2]=255;d[idx+3]=Math.floor(160*intensity);
-              }
-          }
-        }
-      }
-      ctx.putImageData(id,0,0);
-      if(p<1) noiseRAF=requestAnimationFrame(loop);
-      else ctx.clearRect(0,0,canvas.width,canvas.height);
-    }
-    if(noiseRAF) cancelAnimationFrame(noiseRAF);
-    noiseRAF=requestAnimationFrame(loop);
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    // Effet CSS via la classe — pas de manipulation pixel JS
+    canvas.style.animation='elimNoisePulse '+totalDuration+'ms ease forwards';
+    setTimeout(()=>{ canvas.style.animation=''; },totalDuration+100);
   }
 
-  // Fragments
-  let frags=[];
+  // Fragments — dessinés sur canvas (plus de divs DOM)
+  let frags=[], fragCanvas=null, fragCtx=null, fragRAF=null;
   function spawnFragments(cx,cy,rotDeg){
-    frags.forEach(f=>f.el.remove()); frags=[];
-    const rotRad = (rotDeg||0) * Math.PI/180;
-    for(let i=0;i<35;i++){
-      const angle=(i/35)*Math.PI*2+(Math.random()-0.5)*0.7 + rotRad;
-      const speed=60+Math.random()*700;
-      const rotDir=(Math.random()-0.5)*900;
-      const el=document.createElement('div');
-      el.style.cssText='position:fixed;z-index:20000;font-size:32px;line-height:1;pointer-events:none;';
-      el.textContent='☠️';
-      el.style.left=(cx-16)+'px'; el.style.top=(cy-16)+'px';
-      document.body.appendChild(el);
-      frags.push({el,angle,speed,rotDir,startT:performance.now()});
+    frags=[];
+    fragCanvas=document.getElementById('elim-anim-noise');
+    fragCanvas.width=window.innerWidth; fragCanvas.height=window.innerHeight;
+    fragCtx=fragCanvas.getContext('2d');
+    fragCanvas.style.animation='';
+    fragCanvas.style.opacity='1';
+    const rotRad=(rotDeg||0)*Math.PI/180;
+    const N=28;
+    for(let i=0;i<N;i++){
+      const angle=(i/N)*Math.PI*2+(Math.random()-0.5)*0.6+rotRad;
+      const speed=40+Math.random()*420;
+      const rotDir=(Math.random()-0.5)*720;
+      const sz=20+Math.random()*18;
+      frags.push({cx,cy,angle,speed,rotDir,sz,startT:performance.now()});
     }
   }
   function animateFragments(){
-    const now=performance.now(); let alive=false;
+    if(!fragCtx) return;
+    const now=performance.now();
+    fragCtx.clearRect(0,0,fragCanvas.width,fragCanvas.height);
+    let alive=false;
+    fragCtx.textAlign='center'; fragCtx.textBaseline='middle';
     frags.forEach(f=>{
-      const t=Math.min((now-f.startT)/2000,1);
-      if(t>=1){f.el.style.opacity='0';return;}
+      const t=Math.min((now-f.startT)/3000,1);
+      if(t>=1) return;
       alive=true;
       const dx=Math.cos(f.angle)*f.speed*easeOut(t);
       const dy=Math.sin(f.angle)*f.speed*easeOut(t);
-      f.el.style.transform=`translate(${dx}px,${dy}px) rotate(${f.rotDir*t}deg)`;
-      f.el.style.opacity=String(1-t*0.15);
-      f.el.style.fontSize=(32*(1-t*0.25))+'px';
+      const sz=f.sz*(1-t*0.3);
+      const alpha=1-Math.pow(t,1.5)*0.9;
+      fragCtx.save();
+      fragCtx.globalAlpha=alpha;
+      fragCtx.translate(f.cx+dx, f.cy+dy);
+      fragCtx.rotate(f.rotDir*t*Math.PI/180);
+      fragCtx.font=sz+'px serif';
+      fragCtx.fillText('\u2620\uFE0F',0,0);
+      fragCtx.restore();
     });
-    if(alive) requestAnimationFrame(animateFragments);
-    else { frags.forEach(f=>f.el.remove()); frags=[]; }
+    fragCtx.globalAlpha=1;
+    if(alive){ fragRAF=requestAnimationFrame(animateFragments); }
+    else{
+      fragCtx.clearRect(0,0,fragCanvas.width,fragCanvas.height);
+      frags=[]; fragRAF=null;
+    }
   }
 
   // Timers et RAF
@@ -5758,8 +5826,11 @@ function exportRecapPDF(){
   function clearAll(){
     pending.forEach(id=>clearTimeout(id)); pending=[];
     if(animRAF){cancelAnimationFrame(animRAF);animRAF=null;}
+    if(fragRAF){cancelAnimationFrame(fragRAF);fragRAF=null;}
+    const canvas_noise=document.getElementById('elim-anim-noise');
+    if(canvas_noise){ canvas_noise.style.animation=''; if(fragCtx) fragCtx.clearRect(0,0,canvas_noise.width,canvas_noise.height); }
     if(noiseRAF){cancelAnimationFrame(noiseRAF);noiseRAF=null;}
-    frags.forEach(f=>f.el.remove()); frags=[];
+    frags=[];
   }
 
   function resetTexts(){
@@ -5953,7 +6024,7 @@ function _finSpawnConfetti(W){
   });
 }
 function _finDrawConfetti(ctx,W,H){
-  if(Math.random()<0.35) _finSpawnConfetti(W);
+  if(Math.random()<0.18) _finSpawnConfetti(W);
   for(var i=_finConfetti.length-1;i>=0;i--){
     var c=_finConfetti[i];
     c.x+=c.vx; c.y+=c.vy; c.vy+=0.04;
@@ -6009,7 +6080,7 @@ function _finFadeFrame(now){
   }
 }
 
-var _finRAF=null, _finOverlay=null, _finCanvas=null, _finCtx=null;
+var _finRAF=null, _finOverlay=null, _finCanvas=null, _finCtx=null, _finEmojiOk=false;
 var _finStartT=0, _finRot=0, _finFlagWave=0, _finMotos=[];
 var _finShown0=false, _finShown1=false, _finShown2=false, _finFadeDone=false;
 var _FIN_T0=1600, _FIN_T1=1800, _FIN_T2=1950, _FIN_TFADE=4600, _FIN_TTOTAL=5200;
@@ -6023,35 +6094,127 @@ function _finFrame(now){
   _finCtx.translate(W/2,H/2);
   _finCtx.rotate(_finRot*Math.PI/180);
   _finCtx.translate(-W/2,-H/2);
-  var motoSz=Math.min(W,H)*0.18;
+  var motoSz=Math.min(W,H)*0.15;
   var diag=Math.ceil(Math.sqrt(W*W+H*H));
-  var trackY=H*0.32;
-  var flagSz=Math.min(W,H)*0.13;
+  // Piste dans la moitié basse — textes dans la moitié haute
+  var trackY=H*0.72;
+  var flagSz=Math.min(W,H)*0.16;
+  // Ligne de piste — de -diag à diag pour couvrir paysage et portrait
+  _finCtx.save();
+  _finCtx.strokeStyle='rgba(255,255,255,0.08)';
+  _finCtx.lineWidth=motoSz*0.8;
+  _finCtx.beginPath(); _finCtx.moveTo(-diag,trackY); _finCtx.lineTo(W*0.93,trackY); _finCtx.stroke();
+  _finCtx.restore();
   for(var i=0;i<_finMotos.length;i++){
     var m=_finMotos[i];
     var accel=e<500?m.s*(e/500):m.s;
     m.x+=accel; m.y=trackY+m.oY+Math.sin(e*0.013+i)*2;
-    if(m.x>diag+motoSz) m.x=-motoSz*1.2;
-    if(Math.random()<0.15) _finSpawnSpark(m.x-motoSz*0.3, m.y+motoSz*0.2, m.g);
+    if(m.x>diag+motoSz) m.x=-diag-motoSz;
+    if(Math.random()<0.08) _finSpawnSpark(m.x-motoSz*0.3, m.y+motoSz*0.2, m.g);
     var rgb=m.g.match(/[\d.]+/g);
-    var tLen=motoSz*1.4, tH=motoSz*0.08, tX=m.x-motoSz*1.0;
+    var tLen=motoSz*1.6, tH=motoSz*0.07, tX=m.x-motoSz*0.8;
     var grad=_finCtx.createLinearGradient(tX,m.y,tX-tLen,m.y);
     grad.addColorStop(0,'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+',0.7)');
     grad.addColorStop(1,'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+',0)');
     _finCtx.save(); _finCtx.fillStyle=grad;
-    _finCtx.fillRect(tX-tLen, m.y-tH/2+motoSz*0.25, tLen, tH);
+    _finCtx.fillRect(tX-tLen, m.y-tH/2, tLen, tH);
     _finCtx.restore();
+    // Voiture : emoji si supporté, vectoriel sinon
     _finCtx.save();
     _finCtx.translate(m.x,m.y); _finCtx.scale(-1,1);
-    _finCtx.font=motoSz+'px serif';
-    _finCtx.textAlign='center'; _finCtx.textBaseline='middle';
-    _finCtx.fillText(m.e,0,0);
+    if(_finEmojiOk){
+      _finCtx.font=motoSz+'px serif';
+      _finCtx.textAlign='center'; _finCtx.textBaseline='middle';
+      _finCtx.fillText('\uD83C\uDFCE\uFE0F',0,0);
+    } else {
+      // F1 vectorielle
+      var cw=motoSz*1.1, ch=motoSz*0.32;
+      var r=rgb[0],g=rgb[1],b=rgb[2];
+      var col='rgba('+r+','+g+','+b+',';
+
+      // Aileron arrière (gauche — on est scale(-1,1))
+      _finCtx.fillStyle=col+'0.9)';
+      _finCtx.beginPath();
+      _finCtx.moveTo(-cw*0.52, -ch*0.15);
+      _finCtx.lineTo(-cw*0.52, -ch*0.45);
+      _finCtx.lineTo(-cw*0.35, -ch*0.45);
+      _finCtx.lineTo(-cw*0.38, -ch*0.15);
+      _finCtx.closePath(); _finCtx.fill();
+      // Aileron arrière — lame horizontale
+      _finCtx.fillStyle=col+'1)';
+      _finCtx.fillRect(-cw*0.58,-ch*0.48, cw*0.28, ch*0.09);
+
+      // Carrosserie principale — profil F1 profilé
+      var gCar=_finCtx.createLinearGradient(0,-ch*0.6,0,ch*0.35);
+      gCar.addColorStop(0,'rgba('+r+','+g+','+b+',1)');
+      gCar.addColorStop(0.5,'rgba('+Math.min(255,+r+60)+','+Math.min(255,+g+60)+','+Math.min(255,+b+60)+',1)');
+      gCar.addColorStop(1,'rgba('+r+','+g+','+b+',0.8)');
+      _finCtx.fillStyle=gCar;
+      _finCtx.beginPath();
+      // Bas de caisse plat
+      _finCtx.moveTo(-cw*0.52, ch*0.28);
+      // Nez pointu avant (droite)
+      _finCtx.bezierCurveTo(-cw*0.1,ch*0.28, cw*0.3,ch*0.22, cw*0.55,ch*0.05);
+      // Pointe du nez
+      _finCtx.lineTo(cw*0.55, -ch*0.05);
+      // Dessus carrosserie profilé
+      _finCtx.bezierCurveTo(cw*0.3,-ch*0.22, cw*0.0,-ch*0.52, -cw*0.18,-ch*0.52);
+      _finCtx.bezierCurveTo(-cw*0.3,-ch*0.52, -cw*0.52,-ch*0.3, -cw*0.52,-ch*0.1);
+      _finCtx.closePath(); _finCtx.fill();
+
+      // Cockpit ouvert
+      _finCtx.fillStyle='rgba(8,12,20,0.92)';
+      _finCtx.beginPath();
+      _finCtx.ellipse(cw*0.0,-ch*0.28, cw*0.18,ch*0.2, 0,0,Math.PI*2);
+      _finCtx.fill();
+      // Casque pilote
+      _finCtx.fillStyle='rgba(220,220,240,0.85)';
+      _finCtx.beginPath();
+      _finCtx.ellipse(cw*0.02,-ch*0.3, cw*0.1,ch*0.13, -0.15,0,Math.PI*2);
+      _finCtx.fill();
+      // Visière
+      _finCtx.fillStyle='rgba(80,160,255,0.6)';
+      _finCtx.beginPath();
+      _finCtx.ellipse(cw*0.06,-ch*0.28, cw*0.07,ch*0.07, -0.2,0,Math.PI);
+      _finCtx.fill();
+
+      // Reflet carrosserie
+      _finCtx.fillStyle='rgba(255,255,255,0.18)';
+      _finCtx.beginPath();
+      _finCtx.moveTo(-cw*0.1,-ch*0.5);
+      _finCtx.bezierCurveTo(cw*0.1,-ch*0.45, cw*0.3,-ch*0.18, cw*0.35,-ch*0.02);
+      _finCtx.bezierCurveTo(cw*0.25,-ch*0.05, cw*0.05,-ch*0.28, -cw*0.08,-ch*0.5);
+      _finCtx.closePath(); _finCtx.fill();
+
+      // Aileron avant — lame
+      _finCtx.fillStyle=col+'1)';
+      _finCtx.fillRect(cw*0.38, ch*0.04, cw*0.22, ch*0.07);
+      // Supports aileron avant
+      _finCtx.fillStyle=col+'0.8)';
+      _finCtx.fillRect(cw*0.42, ch*0.0, cw*0.04, ch*0.12);
+      _finCtx.fillRect(cw*0.52, ch*0.0, cw*0.04, ch*0.12);
+
+      // Roues (4 visibles en 2D — avant et arrière)
+      [[-cw*0.36,ch*0.25,ch*0.30],[cw*0.38,ch*0.18,ch*0.24]].forEach(function(p){
+        // Pneu
+        _finCtx.beginPath(); _finCtx.ellipse(p[0],p[1],p[2],p[2]*0.55,0,0,Math.PI*2);
+        _finCtx.fillStyle='#111'; _finCtx.fill();
+        _finCtx.strokeStyle='#333'; _finCtx.lineWidth=1; _finCtx.stroke();
+        // Jante
+        _finCtx.beginPath(); _finCtx.ellipse(p[0],p[1],p[2]*0.6,p[2]*0.32,0,0,Math.PI*2);
+        _finCtx.fillStyle=col+'0.9)'; _finCtx.fill();
+        // Moyeu
+        _finCtx.beginPath(); _finCtx.ellipse(p[0],p[1],p[2]*0.18,p[2]*0.1,0,0,Math.PI*2);
+        _finCtx.fillStyle='rgba(220,220,220,0.9)'; _finCtx.fill();
+      });
+    }
     _finCtx.restore();
   }
   _finDrawSparks(_finCtx);
   _finDrawConfetti(_finCtx,W,H);
   _finFlagWave+=0.05;
-  _finDrawFlag(_finCtx, W*0.88, trackY-motoSz*0.6, _finFlagWave, flagSz);
+  // Drapeau en bout de piste (dans le bloc rotate — suit l'orientation)
+  _finDrawFlag(_finCtx, W*0.91, trackY-flagSz*0.9, _finFlagWave, flagSz);
   _finCtx.restore();
   if(e>=_FIN_T0&&!_finShown0){ _finShown0=true;
     _finSetEl('fin-anim-name', 1,'scale(1)','opacity 0.2s, transform 0.5s cubic-bezier(0.34,1.6,0.64,1)'); }
@@ -6108,6 +6271,16 @@ window.playFinAnim=function(playerIdx){
   _finMotos=_FIN_RACERS.map(function(r,i){
     return {e:r.e,g:r.g,s:r.s,x:-motoSz*(0.5+gaps[i]),oY:motoSz*offsets[i]};
   });
+  // Détection support emoji sur canvas
+  (function(){
+    var tc=document.createElement('canvas'); tc.width=20; tc.height=20;
+    var tx=tc.getContext('2d'); tx.font='16px serif';
+    tx.fillText('\uD83C\uDFCE\uFE0F',0,16);
+    var d=tx.getImageData(0,0,20,20).data;
+    var hasColor=false;
+    for(var pi=0;pi<d.length;pi+=4){if(d[pi]>20||d[pi+1]>20||d[pi+2]>20){hasColor=true;break;}}
+    _finEmojiOk=hasColor;
+  })();
   _finRAF=requestAnimationFrame(_finFrame);
 };
 })();
@@ -6124,21 +6297,21 @@ function _spawnRocket(W,H,rot){
   var x=W*(0.1+Math.random()*0.8);
   var topMargin=(rot===90||rot===-90)?0.25:0.05;
   var ty=H*(topMargin+Math.random()*0.35);
-  var dur=22+Math.random()*6;
+  var dur=42+Math.random()*12;
   _rockets.push({x:x,y:H+20,ty:ty,vy:-(H-ty)/dur,col:_rndCol(),trail:[],done:false});
 }
 
 function _spawnExp(x,y){
-  var col=_rndCol(); var n=80+Math.floor(Math.random()*60); var parts=[];
+  var col=_rndCol(); var n=40+Math.floor(Math.random()*20); var parts=[];
   for(var i=0;i<n;i++){
     var a=(i/n)*Math.PI*2+(Math.random()-0.5)*0.4;
-    var s=3+Math.random()*7;
+    var s=2+Math.random()*5;
     var c=Math.random()<0.25?_rndCol():col;
-    parts.push({x:x,y:y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:1,decay:0.012,sz:2+Math.random()*4,col:c,g:0.05+Math.random()*0.05});
+    parts.push({x:x,y:y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:1,decay:0.006,sz:2+Math.random()*4,col:c,g:0.03+Math.random()*0.03});
   }
-  for(var i=0;i<30;i++){
+  for(var i=0;i<12;i++){
     var a=(i/30)*Math.PI*2; var s=8+Math.random()*4;
-    parts.push({x:x,y:y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:1,decay:0.018,sz:3,col:[255,255,255],g:0.02});
+    parts.push({x:x,y:y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:1,decay:0.009,sz:3,col:[255,255,255],g:0.01});
   }
   _exps.push({parts:parts});
 }
@@ -6155,11 +6328,12 @@ function _tick(ctx,W,H,rot){
     for(var ti=0;ti<r.trail.length;ti++){
       var p=r.trail[ti]; var al=(ti/r.trail.length)*0.8;
       ctx.beginPath(); ctx.arc(p.x,p.y,Math.max(0,2.5*(ti/r.trail.length)),0,Math.PI*2);
-      ctx.fillStyle=_rgba(r.col,al); ctx.shadowColor=_rgba(r.col,al); ctx.shadowBlur=6; ctx.fill();
+      ctx.fillStyle=_rgba(r.col,al); ctx.fill();
     }
+    ctx.beginPath(); ctx.arc(r.x,r.y,5,0,Math.PI*2);
+    ctx.fillStyle=_rgba(r.col,0.3); ctx.fill();
     ctx.beginPath(); ctx.arc(r.x,r.y,3.5,0,Math.PI*2);
-    ctx.fillStyle=_rgba(r.col,1); ctx.shadowColor=_rgba(r.col,1); ctx.shadowBlur=12; ctx.fill();
-    ctx.shadowBlur=0;
+    ctx.fillStyle=_rgba(r.col,1); ctx.fill();
     r.y+=r.vy;
     if(r.y<=r.ty&&!r.done){
       r.done=true; _spawnExp(r.x,r.y);
@@ -6174,9 +6348,10 @@ function _tick(ctx,W,H,rot){
       if(p.life<=0) continue;
       alive=true;
       p.x+=p.vx; p.y+=p.vy; p.vy+=p.g; p.life-=p.decay;
+      ctx.beginPath(); ctx.arc(p.x,p.y,Math.max(0,p.sz*p.life*1.8),0,Math.PI*2);
+      ctx.fillStyle=_rgba(p.col,p.life*0.25); ctx.fill();
       ctx.beginPath(); ctx.arc(p.x,p.y,Math.max(0,p.sz*p.life),0,Math.PI*2);
-      ctx.fillStyle=_rgba(p.col,p.life*0.95); ctx.shadowColor=_rgba(p.col,p.life*0.6); ctx.shadowBlur=5; ctx.fill();
-      ctx.shadowBlur=0;
+      ctx.fillStyle=_rgba(p.col,p.life*0.95); ctx.fill();
     }
     if(!alive) _exps.splice(e,1);
   }
@@ -6191,7 +6366,7 @@ function _setEl(id,opacity,transform,transition){
   if(transform!==undefined) el.style.transform=transform;
 }
 function _resetTexts(){
-  _setEl('win-anim-trophy',0,'scale(0.05) rotate(-30deg)');
+  _setEl('win-anim-trophy-canvas',0,'scale(0.02) rotate(-20deg)');
   _setEl('win-anim-name',  0,'scale(0.5)');
   _setEl('win-anim-msg',   0,'translateY(12px)');
   _setEl('win-anim-score', 0,'translateY(12px)');
@@ -6220,9 +6395,9 @@ function _frame(now){
   var e=now-_gStartT;
   var noRockets=(_gVolleys>=999);
   if(!noRockets&&_gVolleys<6&&e>_gVolleys*60){ _spawnRocket(_gCanvas.width,_gCanvas.height,_gRot); _gVolleys++; }
-  if(!noRockets&&e>200&&Math.random()<0.22&&_rockets.length<14) _spawnRocket(_gCanvas.width,_gCanvas.height,_gRot);
+  if(!noRockets&&e>200&&Math.random()<0.12&&_rockets.length<5) _spawnRocket(_gCanvas.width,_gCanvas.height,_gRot);
   _tick(_gCtx,_gCanvas.width,_gCanvas.height,_gRot);
-  if(e>=_T0&&!_gShown0){ _gShown0=true; _setEl('win-anim-trophy',1,'scale(1) rotate(0deg)','opacity 0.4s, transform 0.9s cubic-bezier(0.34,2.2,0.64,1)'); }
+  if(e>=_T0&&!_gShown0){ _gShown0=true; _setEl('win-anim-trophy-canvas',1,'scale(1) rotate(0deg)','opacity 0.4s ease, transform 0.85s cubic-bezier(0.2,5.0,0.4,1)'); }
   if(e>=_T1&&!_gShown1){ _gShown1=true; _setEl('win-anim-name',  1,'scale(1)',             'opacity 0.2s, transform 0.5s cubic-bezier(0.34,1.6,0.64,1)'); }
   if(e>=_T2&&!_gShown2){ _gShown2=true; _setEl('win-anim-msg',   1,'none',                 'opacity 0.35s, transform 0.35s ease'); }
   if(e>=_T3&&!_gShown3&&_gHasScore){ _gShown3=true; _setEl('win-anim-score',1,'none','opacity 0.35s, transform 0.35s ease'); }
@@ -6232,6 +6407,88 @@ function _frame(now){
     requestAnimationFrame(_fadeFrame);
   }
   _winRAF=e<_T_TOTAL+100?requestAnimationFrame(_frame):null;
+}
+
+// Dessine une coupe vectorielle sur un canvas
+function _drawTrophy(canvas){
+  var W=canvas.width, H=canvas.height;
+  var ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+  var cx=W/2, s=W*0.42;
+
+  // Ombre portée douce
+  ctx.save();
+  ctx.shadowColor='rgba(255,180,0,0.5)';
+  ctx.shadowBlur=W*0.18;
+  ctx.shadowOffsetY=W*0.04;
+
+  // Socle
+  var gSocle=ctx.createLinearGradient(cx-s*0.5,H*0.88,cx+s*0.5,H*0.97);
+  gSocle.addColorStop(0,'#b8860b'); gSocle.addColorStop(0.4,'#ffd700'); gSocle.addColorStop(1,'#8b6914');
+  ctx.fillStyle=gSocle;
+  ctx.beginPath();
+  ctx.moveTo(cx-s*0.5,H*0.97); ctx.lineTo(cx+s*0.5,H*0.97);
+  ctx.lineTo(cx+s*0.38,H*0.87); ctx.lineTo(cx-s*0.38,H*0.87);
+  ctx.closePath(); ctx.fill();
+
+  // Tige
+  var gTige=ctx.createLinearGradient(cx-s*0.1,0,cx+s*0.1,0);
+  gTige.addColorStop(0,'#8b6914'); gTige.addColorStop(0.5,'#ffd700'); gTige.addColorStop(1,'#8b6914');
+  ctx.fillStyle=gTige;
+  ctx.fillRect(cx-s*0.1, H*0.72, s*0.2, H*0.16);
+
+  // Coupe principale
+  var gCoupe=ctx.createLinearGradient(cx-s,H*0.15,cx+s,H*0.72);
+  gCoupe.addColorStop(0,'#8b6914');
+  gCoupe.addColorStop(0.25,'#ffd700');
+  gCoupe.addColorStop(0.5,'#ffe066');
+  gCoupe.addColorStop(0.75,'#ffd700');
+  gCoupe.addColorStop(1,'#8b6914');
+  ctx.fillStyle=gCoupe;
+  ctx.beginPath();
+  ctx.moveTo(cx-s*0.72, H*0.18);
+  ctx.bezierCurveTo(cx-s*0.72,H*0.18, cx-s*0.58,H*0.72, cx-s*0.1,H*0.72);
+  ctx.lineTo(cx+s*0.1, H*0.72);
+  ctx.bezierCurveTo(cx+s*0.58,H*0.72, cx+s*0.72,H*0.18, cx+s*0.72,H*0.18);
+  ctx.bezierCurveTo(cx+s*0.45,H*0.12, cx-s*0.45,H*0.12, cx-s*0.72,H*0.18);
+  ctx.closePath(); ctx.fill();
+
+  // Reflet principal
+  ctx.fillStyle='rgba(255,255,255,0.22)';
+  ctx.beginPath();
+  ctx.moveTo(cx-s*0.4, H*0.2);
+  ctx.bezierCurveTo(cx-s*0.35,H*0.18, cx-s*0.05,H*0.18, cx,H*0.2);
+  ctx.bezierCurveTo(cx-s*0.05,H*0.42, cx-s*0.35,H*0.48, cx-s*0.4,H*0.52);
+  ctx.closePath(); ctx.fill();
+
+  // Anses
+  [[-1],[1]].forEach(function(side){
+    var sx=side[0];
+    ctx.strokeStyle=gCoupe;
+    var gAnse=ctx.createLinearGradient(cx+sx*s*0.72,H*0.3,cx+sx*s*1.05,H*0.5);
+    gAnse.addColorStop(0,'#ffd700'); gAnse.addColorStop(0.5,'#ffe066'); gAnse.addColorStop(1,'#8b6914');
+    ctx.strokeStyle=gAnse; ctx.lineWidth=s*0.12; ctx.lineCap='round';
+    ctx.beginPath();
+    ctx.moveTo(cx+sx*s*0.68, H*0.28);
+    ctx.bezierCurveTo(cx+sx*s*1.1,H*0.22, cx+sx*s*1.1,H*0.62, cx+sx*s*0.68,H*0.58);
+    ctx.stroke();
+  });
+
+  // Étoile au sommet
+  ctx.fillStyle='#ffe066';
+  ctx.save(); ctx.translate(cx, H*0.1); ctx.rotate(-Math.PI/2);
+  ctx.beginPath();
+  for(var si=0;si<5;si++){
+    var ao=si*Math.PI*2/5, ai=ao+Math.PI/5;
+    var ro=s*0.14, ri=s*0.06;
+    if(si===0) ctx.moveTo(Math.cos(ao)*ro,Math.sin(ao)*ro);
+    else ctx.lineTo(Math.cos(ao)*ro,Math.sin(ao)*ro);
+    ctx.lineTo(Math.cos(ai)*ri,Math.sin(ai)*ri);
+  }
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+
+  ctx.restore(); // fin ombre
 }
 
 window.playWinAnim=function(playerIdx){
@@ -6252,7 +6509,20 @@ window.playWinAnim=function(playerIdx){
   var modeUniqueWinner = !!(singleWinner || (elimPoints!==null && !lastLoser));
   var isChamp = p.winRank===1 && modeUniqueWinner;
   var msg = isChamp ? (t('winAnimMsg')||'VICTOIRE !') : (t('finisher')||'FINISHEUR')+' #'+p.winRank;
-  document.getElementById('win-anim-trophy').textContent = isChamp ? '🏆' : '🏁';
+  var _tc=document.getElementById('win-anim-trophy-canvas');
+  if(_tc){
+    var _tSz=Math.min(window.innerWidth*0.22,140);
+    _tc.width=_tSz; _tc.height=_tSz;
+    if(isChamp){ _drawTrophy(_tc); }
+    else{
+      // Drapeau damier pour finisher
+      var _ctx=_tc.getContext('2d');
+      _ctx.clearRect(0,0,_tSz,_tSz);
+      _ctx.font=(_tSz*0.72)+'px serif';
+      _ctx.textAlign='center'; _ctx.textBaseline='middle';
+      _ctx.fillText('\uD83C\uDFC1',_tSz/2,_tSz/2);
+    }
+  }
 
   document.getElementById('win-anim-name').textContent=name;
   document.getElementById('win-anim-msg').textContent=msg;
@@ -6519,7 +6789,7 @@ function confirmReset(){
 <div id="win-anim-overlay" onclick="stopWinAnim()">
   <canvas id="win-anim-canvas"></canvas>
   <div id="win-anim-texts">
-    <div id="win-anim-trophy">🏆</div>
+    <canvas id="win-anim-trophy-canvas" width="160" height="160" style="display:block;margin:0 auto;"></canvas>
     <div id="win-anim-name"></div>
     <div id="win-anim-msg"></div>
     <div id="win-anim-score"></div>
