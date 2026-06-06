@@ -39,6 +39,7 @@ const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 // CDN à précacher (jsPDF)
 const CDN_URLS = [
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
 ];
 const CDN_HOSTS = ['cdnjs.cloudflare.com'];
 
@@ -162,7 +163,7 @@ self.addEventListener('fetch', e => {
 </script>
 <meta name="apple-mobile-web-app-title" content="ScoreTrack">
 <meta name="theme-color" id="meta-theme-color" content="#020d12">
-<meta name="app-version" content="67">
+<meta name="app-version" content="73">
 <link rel="manifest" id="dyn-manifest">
 <link rel="apple-touch-icon" id="dyn-touch-icon">
 <link rel="apple-touch-startup-image" id="dyn-splash">
@@ -1019,6 +1020,7 @@ body::after{content:'';position:fixed;bottom:0;left:0;right:0;height:env(safe-ar
 @keyframes winFadeOut{from{opacity:1}to{opacity:0}}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" onerror="console.warn('jsPDF non chargé')"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" onerror="console.warn('html2canvas non chargé')"></script>
 </head>
 <body>
 
@@ -3859,7 +3861,7 @@ const GAME_PRESETS=[
   {nameKey:'presetUno',   detailKey:'presetUnoDetail',
    players:4, start:0, objectifMode:'win',  objectifVal:500,  singleWinner:false, lastLoser:false},
   {nameKey:'presetBelote', detailKey:'presetBeloteDetail',
-   players:2, start:0, objectifMode:'win', objectifVal:1000, singleWinner:false, lastLoser:true},
+   players:2, start:0, objectifMode:'win', objectifVal:1000, singleWinner:false, lastLoser:false},
   {nameKey:'presetMagic', detailKey:'presetMagicDetail',
    players:4, start:20, objectifMode:'elim', objectifVal:0, singleWinner:false, lastLoser:false},
   {nameKey:'presetSkyjo', detailKey:'presetSkyjoDetail',
@@ -5535,211 +5537,223 @@ function showRecap(){
 // ── EXPORT PDF RÉCAPITULATIF ──────────────────────────────────────
 function exportRecapPDF(){
   if(!window.jspdf){alert('jsPDF non chargé.');return;}
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  if(!window.html2canvas){alert('html2canvas non chargé.');return;}
+  const gameName = document.getElementById('pdf-game-name').value.trim();
+  const inclScores  = document.getElementById('pdf-chk-scores').checked;
+  const inclHistory = document.getElementById('pdf-chk-history').checked;
+  const inclInfo    = document.getElementById('pdf-chk-info').checked;
 
-  const inclScores   = document.getElementById('pdf-chk-scores').checked;
-  const inclHistory  = document.getElementById('pdf-chk-history').checked;
-  const inclInfo     = document.getElementById('pdf-chk-info').checked;
-  const gameName     = document.getElementById('pdf-game-name').value.trim();
+  // ── Palette daltonien-safe (même que l'app) ──
+  const COL = {
+    bg:'#020d12', surface:'#0d1f2d', border:'#1e3a4a',
+    accent:'#66CCEE', neg:'#EE6677', text:'#e8f4f8', muted:'#7a9aaa',
+    win:'#66CCEE', elim:'#7a9aaa', gold:'#FFD700',
+    hdr:'#091520', row1:'#0a1a26', row2:'#0d1f2d'
+  };
 
-  const pageW = 210, margin = 16, contentW = pageW - margin*2;
-  let y = 18;
-
-  // ── Couleurs daltonien-safe ──
-  const C_TITLE  = [10,  10,  10];
-  const C_SUB    = [80,  80,  80];
-  const C_POS    = [0,   100, 180]; // bleu
-  const C_NEG    = [200, 80,  20];  // orange
-  const C_BORDER = [200, 200, 200];
-  const C_BG_HDR = [240, 240, 240];
-  const C_WIN    = [30,  120, 40];
-  const C_ELIM   = [150, 150, 150];
-
-  // ── En-tête ──
-  doc.setFont('helvetica','bold');
-  doc.setFontSize(18);
-  doc.setTextColor(...C_TITLE);
-  doc.text('ScoreTrack', margin, y);
-  y += 7;
-
-  if(gameName){
-    doc.setFontSize(13);
-    doc.setFont('helvetica','bold');
-    doc.setTextColor(...C_TITLE);
-    doc.text(gameName, margin, y);
-    y += 6;
-  }
-
-  doc.setFont('helvetica','normal');
-  doc.setFontSize(9);
-  doc.setTextColor(...C_SUB);
-  doc.text(t('recapTitle'), margin, y);
-  y += 3;
-
-  // Ligne séparatrice
-  doc.setDrawColor(...C_BORDER);
-  doc.line(margin, y, pageW-margin, y);
-  y += 6;
-
-  // ── Infos partie ──
-  if(inclInfo && lastGameConfig){
-    doc.setFont('helvetica','bold');
-    doc.setFontSize(9);
-    doc.setTextColor(...C_SUB);
+  // ── Construire le HTML du rapport ──
+  function buildReportHTML(){
     const now = new Date();
     const dateStr = now.toLocaleDateString(undefined,{day:'2-digit',month:'2-digit',year:'numeric'})
                   + ' ' + now.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'});
-    const cfg = lastGameConfig;
-    const infoLines = [
-      'Date : ' + dateStr,
-      t('labelPlayers') + ' : ' + cfg.numPlayers,
-      t('labelStart') + ' : ' + cfg.startPoints,
-    ];
-    if(cfg.objectifMode==='win' && cfg.objectifVal!=null)
-      infoLines.push(t('btnWin')+' : '+cfg.objectifVal);
-    if(cfg.objectifMode==='win' && cfg.singleWinner)
-      infoLines.push(t('labelSingleWinner')||'Fin dès la première victoire');
-    if(cfg.objectifMode==='win' && cfg.lastLoser && !cfg.singleWinner)
-      infoLines.push(t('labelLastLoser')||'Dernier joueur perdant');
-    if(cfg.objectifMode==='elim' && cfg.objectifVal!=null)
-      infoLines.push(t('btnElim')+' : '+cfg.objectifVal);
 
-    infoLines.forEach(line=>{
-      doc.setFontSize(8.5);
-      doc.setFont('helvetica','normal');
-      doc.text(line, margin, y);
-      y += 4.5;
-    });
-    y += 2;
-    doc.setDrawColor(...C_BORDER);
-    doc.line(margin, y, pageW-margin, y);
-    y += 6;
-  }
-
-  // ── Scores finaux ──
-  if(inclScores){
-    doc.setFont('helvetica','bold');
-    doc.setFontSize(10);
-    doc.setTextColor(...C_TITLE);
-    doc.text(t('recapTitle') + ' — Scores', margin, y);
-    y += 5;
-
-    // Tableau header
-    const colName=margin, colStatus=margin+80, colScore=margin+145;
-    doc.setFillColor(...C_BG_HDR);
-    doc.rect(margin, y-4, contentW, 7, 'F');
-    doc.setFontSize(8);
-    doc.setTextColor(...C_SUB);
-    doc.text(t('namesTitle')||'Joueur', colName+1, y);
-    doc.text('Statut', colStatus+1, y);
-    doc.text('Score', colScore+1, y);
-    y += 4;
-    doc.setDrawColor(...C_BORDER);
-    doc.line(margin, y, pageW-margin, y);
-    y += 4;
-
-    // Trier : gagnants d'abord, puis éliminés par rang, puis actifs
+    // Trier joueurs
     const sorted = players.map((p,i)=>({p,i})).sort((a,b)=>{
-      if(a.p.winner&&!b.p.winner)return -1;
-      if(!a.p.winner&&b.p.winner)return 1;
-      if(a.p.winner&&b.p.winner)return (a.p.winRank||99)-(b.p.winRank||99);
-      if(a.p.eliminated&&!b.p.eliminated)return 1;
-      if(!a.p.eliminated&&b.p.eliminated)return -1;
-      return 0;
+      const ra = a.p.winner?(a.p.winRank||99):a.p.eliminated?1000:500;
+      const rb = b.p.winner?(b.p.winRank||99):b.p.eliminated?1000:500;
+      if(ra!==rb)return ra-rb;
+      return (b.p.finalScore!==undefined?b.p.finalScore:b.p.score)-(a.p.finalScore!==undefined?a.p.finalScore:a.p.score);
     });
 
-    sorted.forEach(({p,i})=>{
-      const name = p.playerName||(t('player')+' '+(i+1));
-      const score = p.finalScore!==undefined?p.finalScore:p.score;
-      let status='';
-      if(p.winner)status='🏆 '+t('winner')+(players.length>2?' #'+(p.winRank||1):'');
-      else if(p.eliminated)status='💀 '+(players.length>2?'#'+(p.elimRank||''):''+t('btnEliminate'));
+    // Section scores
+    let scoresHTML = '';
+    if(inclScores){
+      const rows = sorted.map(({p,i},ri)=>{
+        const score = p.finalScore!==undefined?p.finalScore:p.score;
+        const name = p.playerName||(t('player')+' '+(i+1));
+        const rank = p.winner?(p.winRank||1):p.eliminated?(p.elimRank||''):'-';
+        const statusTxt = p.winner?t('winner'):p.eliminated?t('btnEliminate'):'';
+        const scoreCol = score>=0?COL.accent:COL.neg;
+        const rowBg = p.winner?'#0a2535':ri%2===0?COL.row1:COL.row2;
+        const namecol = p.winner?COL.win:p.eliminated?COL.elim:COL.text;
+        return `<tr style="background:${rowBg}">
+          <td style="padding:7px 10px;color:${COL.muted};font-size:11px;text-align:center;width:30px">${rank}</td>
+          <td style="padding:7px 10px;color:${namecol};font-weight:700;font-size:13px">${name}</td>
+          <td style="padding:7px 10px;color:${namecol};font-size:11px">${statusTxt}</td>
+          <td style="padding:7px 14px;color:${scoreCol};font-weight:900;font-size:15px;text-align:right;font-family:'Share Tech Mono',monospace">${(score>=0?'+':'')+fmtNum(score)}</td>
+        </tr>`;
+      }).join('');
+      scoresHTML = `
+        <div class="section-hdr">SCORES</div>
+        <table>
+          <thead><tr>
+            <th style="width:30px">#</th>
+            <th>${t('namesTitle')||'JOUEUR'}</th>
+            <th>STATUT</th>
+            <th style="text-align:right">SCORE</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+    }
 
-      doc.setFont('helvetica','bold');
-      doc.setFontSize(9);
-      doc.setTextColor(...C_TITLE);
-      doc.text(name.substring(0,28), colName+1, y);
+    // Section historique
+    let histHTML = '';
+    if(inclHistory){
+      const histPlayers = players.map((p,pi)=>({p,pi,
+        name:(p.playerName||(t('player')+' '+(pi+1))),
+        groups:history.filter(h=>h.playerIdx===pi).sort((a,b)=>a.rank-b.rank)
+      })).filter(x=>x.groups.length>0);
 
-      doc.setFont('helvetica','normal');
-      doc.setFontSize(8);
-      if(p.winner)doc.setTextColor(...C_WIN);
-      else if(p.eliminated)doc.setTextColor(...C_ELIM);
-      else doc.setTextColor(...C_SUB);
-      doc.text(status, colStatus+1, y);
+      const maxRank = Math.max(...histPlayers.map(x=>x.groups.length),0);
+      const colW = Math.floor(100/Math.max(histPlayers.length,1));
 
-      doc.setFont('helvetica','bold');
-      doc.setFontSize(10);
-      doc.setTextColor(...(score>=0?C_POS:C_NEG));
-      doc.text(fmtNum(score), colScore+1, y);
+      const hdrs = histPlayers.map(x=>{
+        const score = x.p.finalScore!==undefined?x.p.finalScore:x.p.score;
+        const col = x.p.winner?COL.win:x.p.eliminated?COL.elim:COL.text;
+        const sc = score>=0?COL.accent:COL.neg;
+        return `<th style="width:${colW}%;color:${col};font-size:11px">
+          <div>${x.name}</div>
+          <div style="color:${sc};font-size:13px;font-family:'Share Tech Mono',monospace">${(score>=0?'+':'')+fmtNum(score)}</div>
+        </th>`;
+      }).join('');
 
-      y += 6;
-      if(y>270){doc.addPage();y=16;}
+      const rows2 = [];
+      for(let r=0;r<maxRank;r++){
+        const cells = histPlayers.map(x=>{
+          const g = x.groups[r];
+          if(!g) return `<td></td>`;
+          const sum = g.entries.reduce((s,e)=>s+e.delta,0);
+          const sc = sum>=0?COL.accent:COL.neg;
+          return `<td style="padding:5px 8px">
+            <span style="color:${COL.muted};font-size:10px">#${g.rank}</span>
+            <span style="color:${sc};font-weight:700;font-size:12px;float:right;font-family:'Share Tech Mono',monospace">${(sum>=0?'+':'')+fmtNum(sum)}</span>
+          </td>`;
+        }).join('');
+        const bg = r%2===0?COL.row1:COL.row2;
+        rows2.push(`<tr style="background:${bg}">${cells}</tr>`);
+      }
+
+      histHTML = `
+        <div class="section-hdr" style="margin-top:18px">HISTORIQUE</div>
+        <table>
+          <thead><tr>${hdrs}</tr></thead>
+          <tbody>${rows2.join('')}</tbody>
+        </table>`;
+    }
+
+    // Infos partie
+    let infoHTML = '';
+    if(inclInfo && lastGameConfig){
+      const cfg = lastGameConfig;
+      const tags = [
+        t('labelPlayers')+' : '+cfg.numPlayers,
+        t('labelStart')+' : '+cfg.startPoints,
+      ];
+      if(cfg.objectifMode==='win'&&cfg.objectifVal!=null) tags.push(t('btnWin')+' : '+cfg.objectifVal);
+      if(cfg.objectifMode==='elim'&&cfg.objectifVal!=null) tags.push(t('btnElim')+' : '+cfg.objectifVal);
+      infoHTML = `<div class="info-bar">${tags.map(t=>`<span>${t}</span>`).join('<span class="sep">·</span>')}</div>`;
+    }
+
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <style>@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Share+Tech+Mono&family=Inter:wght@400;600;700;800&display=swap');</style>
+    <style>
+      *{margin:0;padding:0;box-sizing:border-box}
+      body{background:${COL.bg};color:${COL.text};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;width:794px}
+      .header{background:${COL.hdr};padding:20px 28px 16px;border-bottom:2px solid ${COL.accent};display:flex;align-items:baseline;justify-content:space-between}
+      .header-left{display:flex;align-items:baseline;gap:14px}
+      .app-title{font-family:'Orbitron',sans-serif;font-size:22px;font-weight:900;color:${COL.accent};letter-spacing:0.15em}
+      .game-name{font-size:15px;color:${COL.text};opacity:0.8}
+      .header-date{font-size:11px;color:${COL.muted};font-family:'Share Tech Mono',monospace}
+      .content{padding:16px 28px 24px}
+      .info-bar{display:flex;align-items:center;gap:12px;padding:8px 0 14px;font-size:11px;color:${COL.muted}}
+      .info-bar .sep{opacity:0.4}
+      .section-hdr{font-family:'Orbitron',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.2em;color:${COL.muted};padding:6px 0 8px;border-top:1px solid ${COL.border};margin-top:4px}
+      table{width:100%;border-collapse:collapse;margin-bottom:4px}
+      thead tr{background:${COL.surface};border-bottom:1px solid ${COL.accent}}
+      thead th{padding:7px 10px;font-size:10px;letter-spacing:0.1em;color:${COL.muted};text-align:left;font-weight:700}
+      tbody tr{border-bottom:1px solid ${COL.border}}
+      tbody td{vertical-align:middle}
+      .footer{padding:10px 28px;border-top:1px solid ${COL.border};display:flex;justify-content:space-between;font-size:10px;color:${COL.muted};font-family:'Share Tech Mono',monospace}
+    </style></head>
+    <body>
+      <div class="header">
+        <div class="header-left">
+          <div class="app-title">SCORETRACK</div>
+          ${gameName?`<div class="game-name">${gameName}</div>`:''}
+        </div>
+        <div class="header-date">${dateStr}</div>
+      </div>
+      <div class="content">
+        ${infoHTML}
+        ${scoresHTML}
+        ${histHTML}
+      </div>
+      <div class="footer">
+        <span>scoretrack.newgames.app</span>
+        <span>${dateStr}</span>
+      </div>
+    </body></html>`;
+  }
+
+  // ── Render HTML → canvas → PDF ──
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:794px;height:1px;border:none;';
+  document.body.appendChild(iframe);
+
+  iframe.onload = async function(){
+    await new Promise(r=>setTimeout(r,800)); // attendre les polices Google Fonts
+    const iDoc = iframe.contentDocument;
+    const fullH = iDoc.body.scrollHeight;
+    iframe.style.height = fullH + 'px';
+
+    await new Promise(r=>setTimeout(r,200));
+
+    html2canvas(iDoc.body, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#020d12',
+      width: 794,
+      height: fullH,
+      logging: false
+    }).then(canvas=>{
+      const { jsPDF } = window.jspdf;
+      const pageW = 210, pageH = 297;
+      const imgW = pageW;
+      const imgH = canvas.height * pageW / canvas.width;
+      const doc = new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+
+      let yOff = 0;
+      let page = 0;
+      while(yOff < imgH){
+        if(page > 0) doc.addPage();
+        // Clipper la portion de l'image pour cette page
+        const srcY = yOff * canvas.width / pageW;
+        const srcH = Math.min(pageH * canvas.width / pageW, canvas.height - srcY);
+        const pageCanvas = document.createElement('canvas');
+        pageCanvas.width = canvas.width;
+        pageCanvas.height = srcH;
+        const ctx = pageCanvas.getContext('2d');
+        ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
+        const imgData = pageCanvas.toDataURL('image/jpeg', 0.92);
+        const sliceH = srcH * pageW / canvas.width;
+        doc.addImage(imgData, 'JPEG', 0, 0, imgW, sliceH);
+        yOff += pageH;
+        page++;
+      }
+
+      const filename = (gameName?gameName.replace(/[^a-zA-Z0-9_\- ]/g,'_'):'ScoreTrack')+'_recap.pdf';
+      doc.save(filename);
+      document.body.removeChild(iframe);
+    }).catch(err=>{
+      console.error('html2canvas error', err);
+      document.body.removeChild(iframe);
+      alert('Erreur lors de la génération du PDF.');
     });
-    y += 4;
-    doc.setDrawColor(...C_BORDER);
-    doc.line(margin, y, pageW-margin, y);
-    y += 6;
-  }
+  };
 
-  // ── Historique ──
-  if(inclHistory){
-    doc.setFont('helvetica','bold');
-    doc.setFontSize(10);
-    doc.setTextColor(...C_TITLE);
-    doc.text(t('recapTitle') + ' — '+t('btnRecap'), margin, y);
-    y += 6;
-
-    players.forEach((p,pi)=>{
-      const groups=history.filter(h=>h.playerIdx===pi).sort((a,b)=>a.rank-b.rank);
-      if(!groups.length)return;
-
-      // Nom du joueur
-      if(y>265){doc.addPage();y=16;}
-      doc.setFillColor(...C_BG_HDR);
-      doc.rect(margin, y-4, contentW, 6.5, 'F');
-      doc.setFont('helvetica','bold');
-      doc.setFontSize(9);
-      doc.setTextColor(...C_TITLE);
-      doc.text((p.playerName||(t('player')+' '+(pi+1))).substring(0,35), margin+2, y);
-      y += 4;
-
-      groups.forEach(g=>{
-        const sum=g.entries.reduce((s,e)=>s+e.delta,0);
-        const sign=sum>0?'+':'';
-        if(y>273){doc.addPage();y=16;}
-        doc.setFont('helvetica','normal');
-        doc.setFontSize(8.5);
-        doc.setTextColor(...C_SUB);
-        doc.text('#'+g.rank, margin+4, y);
-        doc.setFont('helvetica','bold');
-        doc.setTextColor(...(sum>=0?C_POS:C_NEG));
-        doc.text(sign+fmtNum(sum), margin+18, y);
-        y += 5;
-      });
-
-      const displayScore=p.finalScore!==undefined?p.finalScore:p.score;
-      doc.setFont('helvetica','bold');
-      doc.setFontSize(9);
-      doc.setTextColor(...C_TITLE);
-      doc.text('Total : '+fmtNum(displayScore), margin+4, y);
-      y += 7;
-    });
-  }
-
-  // ── Pied de page ──
-  const totalPages = doc.internal.getNumberOfPages();
-  for(let pg=1;pg<=totalPages;pg++){
-    doc.setPage(pg);
-    doc.setFont('helvetica','normal');
-    doc.setFontSize(7);
-    doc.setTextColor(...C_SUB);
-    doc.text('ScoreTrack — scoretrack.app', margin, 292);
-    doc.text(pg+'/'+totalPages, pageW-margin, 292, {align:'right'});
-  }
-
-  const filename = (gameName?gameName.replace(/[^a-zA-Z0-9_\- ]/g,'_'):'ScoreTrack')+'_recap.pdf';
-  doc.save(filename);
+  const html = buildReportHTML();
+  iframe.srcdoc = html;
 }
 
 
