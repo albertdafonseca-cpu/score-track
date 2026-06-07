@@ -3,9 +3,7 @@
     "development"
   ],
   "hints": {
-    "manifest-file-extension": "off",
     "manifest-exists": "off",
-    "apple-touch-icons": "off",
     "compat-api/html": [
       "default",
       {
@@ -13,6 +11,7 @@
           "meta[name=theme-color]"
         ]
       }
-    ]
+    ],
+    "manifest-file-extension": "off"
   }
 }
