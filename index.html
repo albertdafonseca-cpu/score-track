@@ -1405,8 +1405,14 @@ body::after{content:'';position:fixed;bottom:0;left:0;right:0;height:env(safe-ar
 #dice-overlay.hidden{display:none;}
 .dice-sheet{background:var(--bg2);color:var(--text);width:100%;max-width:440px;
   border-radius:20px 20px 0 0;padding:14px 18px calc(18px + env(safe-area-inset-bottom,10px));
-  box-shadow:0 -6px 30px rgba(0,0,0,0.4);max-height:88vh;overflow-y:auto;
-  border-top:2px solid color-mix(in srgb,var(--accent) 40%,transparent);}
+  box-shadow:0 -6px 30px rgba(0,0,0,0.4);
+  /* hauteur FIXE : la feuille garde toujours la même place, quel que soit son contenu */
+  height:88dvh;max-height:88dvh;overflow:hidden;display:flex;flex-direction:column;box-sizing:border-box;
+  border-top:2px solid color-mix(in srgb,var(--accent) 40%,transparent);will-change:transform;}
+/* partie haute (dé, boutons, choix du joueur) : figée ; ne défile qu'en repli si elle ne tient pas */
+.dice-sheet-top{flex:0 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;}
+/* historique : prend la place restante et défile seul */
+.dice-history{flex:1 1 0;min-height:48px;display:flex;flex-direction:column;overflow:hidden;} /* 48px : titre + une ligne, le reste se découvre en faisant défiler l'historique */
 .dice-handle{width:44px;height:4px;border-radius:2px;background:var(--muted2);opacity:0.55;
   margin:2px auto 12px;}
 .dice-title{font-family:'Inter',sans-serif;font-size:17px;font-weight:700;text-align:center;
@@ -1543,9 +1549,10 @@ body::after{content:'';position:fixed;bottom:0;left:0;right:0;height:env(safe-ar
 
 /* Historique */
 .dice-history{margin-top:12px;border-top:1px solid var(--border);padding-top:10px;}
+.dice-history-title{flex:none;}
 .dice-history-title{font-family:'Inter',sans-serif;font-size:11px;font-weight:600;
   text-transform:uppercase;letter-spacing:0.06em;color:var(--muted2);margin-bottom:6px;}
-.dice-history-list{display:flex;flex-direction:column;gap:4px;height:104px;overflow-y:auto;}
+.dice-history-list{display:flex;flex-direction:column;gap:4px;flex:1 1 0;min-height:0;overflow-y:auto;overscroll-behavior:contain;}
 .dice-hist-row{display:flex;align-items:center;gap:8px;font-family:'Share Tech Mono',monospace;
   font-size:13px;color:var(--text);opacity:0.85;}
 .dice-hist-row .cfg{color:var(--muted2);min-width:44px;}
@@ -3901,6 +3908,7 @@ function dieStopQuaternion(g, value, camDir){
 <div id="dice-overlay" class="hidden" onclick="if(event.target===this)closeDice()">
   <div class="dice-sheet">
     <div class="dice-handle"></div>
+    <div class="dice-sheet-top" id="dice-sheet-top">
     <div class="dice-title" id="dice-title">🎲 Lanceur de dés</div>
 
     <!-- En-tête repliable : hamburger seul -->
@@ -3953,6 +3961,7 @@ function dieStopQuaternion(g, value, camDir){
     </div>
 
     <button class="dice-close" onclick="closeDice()" id="dice-close-btn">Fermer</button>
+    </div><!-- /dice-sheet-top -->
 
     <!-- Historique -->
     <div class="dice-history" id="dice-history">
@@ -9653,7 +9662,68 @@ function openDice(){
 function closeDice(){
   var ov=document.getElementById('dice-overlay');
   if(ov)ov.classList.add('hidden');
+  var sh=ov&&ov.querySelector('.dice-sheet');
+  if(sh){ sh.style.transition=''; sh.style.transform=''; }
+  if(ov) ov.style.background='';
 }
+// Glisser la feuille vers le bas pour la fermer (même geste que les pavés numériques).
+// Le geste part de n'importe où sur la feuille sauf les boutons ; dans une zone qui
+// défile (historique, partie haute), il n'est pris que si elle est déjà en haut.
+(function initDiceDrag(){
+  var overlay=document.getElementById('dice-overlay');
+  var sheet=overlay&&overlay.querySelector('.dice-sheet');
+  if(!sheet) return;
+  var _active=false,_decided=false,_sx=0,_sy=0,_lastD=0,_lastT=0,_vel=0,_scroller=null;
+  function startDrag(e){
+    if(overlay.classList.contains('hidden')||e.touches.length>1) return;
+    if(e.target.closest('button,.dice-players,.dice-faces-quick,.dice-select-row')) return;
+    _scroller=e.target.closest('.dice-history-list,.dice-sheet-top');
+    _active=true;_decided=false;_vel=0;_lastD=0;_lastT=performance.now();
+    _sx=e.touches[0].clientX;_sy=e.touches[0].clientY;
+    document.addEventListener('touchmove',onMove,{passive:false});
+    document.addEventListener('touchend',onEnd,{passive:false});
+    document.addEventListener('touchcancel',onEnd,{passive:false});
+  }
+  function onMove(e){
+    if(!_active) return;
+    var dx=e.touches[0].clientX-_sx, dy=e.touches[0].clientY-_sy;
+    if(!_decided){
+      if(Math.abs(dx)<6&&Math.abs(dy)<6) return;            // pas encore un geste
+      // vers le haut, ou horizontal, ou zone défilante non remontée -> laisser le défilement natif
+      if(dy<=0||Math.abs(dx)>Math.abs(dy)||(_scroller&&_scroller.scrollTop>0)){ cancel(); return; }
+      _decided=true; sheet.style.transition='none';
+    }
+    e.preventDefault();
+    var now=performance.now(), d=Math.max(0,dy);
+    var dt=now-_lastT; if(dt>0) _vel=(d-_lastD)/dt;
+    _lastD=d;_lastT=now;
+    sheet.style.transform='translateY('+d+'px)';
+    overlay.style.background='rgba(0,0,0,'+(0.55*(1-Math.min(d/200,1))).toFixed(3)+')';
+  }
+  function cancel(){
+    _active=false;_decided=false;
+    document.removeEventListener('touchmove',onMove);
+    document.removeEventListener('touchend',onEnd);
+    document.removeEventListener('touchcancel',onEnd);
+  }
+  function onEnd(e){
+    var was=_active&&_decided; var d=_lastD, v=_vel;
+    cancel();
+    if(!was||overlay.classList.contains('hidden')) return;
+    if(d>120||v>0.3){
+      sheet.style.transition='transform 0.2s cubic-bezier(0.4,0,1,1)';
+      sheet.style.transform='translateY(100vh)';
+      overlay.style.transition='background 0.2s linear'; overlay.style.background='rgba(0,0,0,0)';
+      setTimeout(function(){ overlay.style.transition=''; closeDice(); },210);
+    } else {
+      sheet.style.transition='transform 0.25s cubic-bezier(0.32,0.72,0,1)';
+      sheet.style.transform='';
+      overlay.style.transition='background 0.25s ease'; overlay.style.background='';
+      setTimeout(function(){ overlay.style.transition=''; },260);
+    }
+  }
+  sheet.addEventListener('touchstart',startDrag,{passive:true});
+})();
 
 function diceRenderConfig(){
   var isPercent=(diceConfig.faces===100);
