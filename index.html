@@ -3007,6 +3007,11 @@ function dieNumTexture(n, colorHex, dense){
   x.textAlign='center'; x.textBaseline='middle';
   // Pas de contour : le contraste chiffre/corps est garanti par construction
   // (couleur des scores sur fond de carte, comme sur les cartes). Glyphe net.
+  if(dense){
+    // petites plaques : encre blanche pure et trait épaissi -> les chiffres minuscules
+    // restent lumineux après réduction (le mélange avec le corps les ternit sinon)
+    col='#ffffff'; x.strokeStyle=col; x.lineWidth=3; x.lineJoin='round'; x.strokeText(n,64,66);
+  }
   x.fillStyle=col; x.fillText(n,64,66);
   if(n==='6'||n==='9'){ var w=fs*0.5; x.fillRect(64-w/2,66+fs*0.42,w,5); }
   var t=new THREE.CanvasTexture(c); t.anisotropy=16; // 16 : chiffres nets en vue rasante (Three plafonne au max du GPU)
@@ -3146,6 +3151,7 @@ function buildNumberedDie(geo, N, bodyHex, numHex, digitSize, bodyGeoOverride, p
     }
     var pl=new THREE.Mesh(new THREE.PlaneGeometry(ds,ds),
       new THREE.MeshBasicMaterial({map:tex,transparent:true,depthWrite:false,side:THREE.FrontSide})); // FrontSide : une face cachée ne laisse pas dépasser son chiffre au bord du corps arrondi
+    pl.userData.label=label; pl.userData.dense=dense; // pour rebasculer le chiffre cerclé sur la texture standard
     if(plateOffset){
       // offset explicite : poser le chiffre à distance poff de l'origine le long de la normale
       pl.position.copy(f.normal).multiplyScalar(poff);
@@ -3166,7 +3172,7 @@ function buildNumberedDie(geo, N, bodyHex, numHex, digitSize, bodyGeoOverride, p
     new THREE.RingGeometry(0.60,0.76,40),
     new THREE.MeshBasicMaterial({color:_haloHex,transparent:true,opacity:0.85,side:THREE.DoubleSide,depthWrite:false}));
   halo.visible=false; group.add(halo); group.userData.halo=halo;
-  group.userData.faces=faces; group.userData.N=N;
+  group.userData.faces=faces; group.userData.N=N; group.userData.numHex=numHex;
   group.userData.numbered=true; // dé à chiffres (≠ cube/coin) : éligible "un seul chiffre"
   return group;
 }
@@ -3203,6 +3209,11 @@ function dieHighlightFace(group, val){
     });
   }
   var w=(pl.geometry && pl.geometry.parameters && pl.geometry.parameters.width)||0.8;
+  if(pl.userData.dense && group.userData.numHex!==undefined){
+    // chiffre cerclé : texture STANDARD (glyphe à taille d'origine, encre ivoire) ;
+    // seuls les chiffres non cerclés gardent le glyphe agrandi / l'encre blanche
+    pl.material.map=_numTex(pl.userData.label, group.userData.numHex, false); pl.material.needsUpdate=true;
+  }
   // petites faces (gros dés) : on agrandit davantage pour atteindre une largeur lisible
   var rw=group.userData.resultWidth||_RESULT_WIDTH;
   var sc=Math.max(_RESULT_SCALE, Math.min(2.8, rw/w));
@@ -3218,10 +3229,14 @@ function dieHighlightFace(group, val){
 function dieClearHighlight(group){
   if(!group || !group.userData) return;
   if(group.userData.halo) group.userData.halo.visible=false;
-  var plates=group.userData.plates||{};                 // restaure la taille des chiffres
+  var plates=group.userData.plates||{};                 // restaure la taille (et la texture) des chiffres
   Object.keys(plates).forEach(function(k){
     (plates[k]||[]).forEach(function(p){
       if(p.userData._baseScale) p.scale.copy(p.userData._baseScale);
+      if(p.userData.dense && group.userData.numHex!==undefined){
+        var dt=_numTex(p.userData.label, group.userData.numHex, true);
+        if(p.material.map!==dt){ p.material.map=dt; p.material.needsUpdate=true; }
+      }
     });
   });
 }
