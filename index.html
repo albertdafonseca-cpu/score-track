@@ -2967,12 +2967,29 @@ function dualVertices(archPoints){
     return f.normal.clone().multiplyScalar(1/d);
   });
 }
-function catalanDie(archFn, radius){
+function catalanDie(archFn, radius, onSphere){
   var dv=dualVertices(archFn());
   var maxr=0; dv.forEach(function(v){maxr=Math.max(maxr,v.length());});
   var s=(radius||1.3)/maxr;
   dv.forEach(function(v){v.multiplyScalar(s);});
-  return new THREE.ConvexGeometry(dv);
+  var geo=new THREE.ConvexGeometry(dv);
+  // Solides à faces TRIANGULAIRES (d48, d120) : les sommets d'un solide de Catalan
+  // sont à trois distances différentes du centre -> silhouette bosselée. On les
+  // ramène tous sur la sphère englobante : les faces restent planes (triangles),
+  // la triangulation est conservée, la silhouette devient ronde comme un vrai d120.
+  // onSphere = taux de rapprochement (1 = pile sur la sphère). Le d120 ne supporte
+  // pas 1 : ses sommets de valence 4 deviendraient coplanaires avec leurs voisins
+  // (les paires de triangles fusionneraient en 60 cerfs-volants).
+  if(onSphere){
+    var t=(onSphere===true)?1:onSphere;
+    var pos=geo.attributes.position, v=new THREE.Vector3(), R=radius||1.3;
+    for(var i=0;i<pos.count;i++){
+      v.fromBufferAttribute(pos,i); var r=v.length()||1e-6;
+      var f=(r+(R-r)*t)/r; pos.setXYZ(i,v.x*f,v.y*f,v.z*f);
+    }
+    pos.needsUpdate=true; geo.computeVertexNormals();
+  }
+  return geo;
 }
 
 /* ═══════ RENDU DÉ COMPLET (faces + chiffres + orientation) ═══════ */
@@ -3059,7 +3076,9 @@ function buildNumberedDie(geo, N, bodyHex, numHex, digitSize, bodyGeoOverride, p
   // flatShading : nets par défaut ; un override est lissé sauf s'il porte
   // userData.flatShade (chanfrein) -> facettes et arêtes nettes.
   var _flat = bodyGeoOverride ? (bodyGeoOverride.userData && bodyGeoOverride.userData.flatShade===true) : true;
-  var mat=new THREE.MeshStandardMaterial({color:bodyHex,roughness:0.42,metalness:0.14,flatShading:_flat}); // jeux de lumière (rendu validé)
+  // gros dés (>= 48 faces) : matériau plus mat -> facettes moins contrastées, boule lisible
+  var _big=(N>=48);
+  var mat=new THREE.MeshStandardMaterial({color:bodyHex,roughness:_big?0.62:0.42,metalness:_big?0.06:0.14,flatShading:_flat}); // jeux de lumière (rendu validé)
   group.add(new THREE.Mesh(bodyGeo,mat));
   // faces/chiffres toujours extraits de la géométrie nette (geo)
   var faces=dieExtractFaces(geo); dieAssignValues(faces,N);
@@ -3230,9 +3249,9 @@ function dieGeometryFor(type){
     case 20:  return new THREE.IcosahedronGeometry(1.3);
     case 24:  return catalanDie(archRhombicuboctahedron,1.35);
     case 30:  return catalanDie(archIcosidodecahedron,1.35);
-    case 48:  return catalanDie(archTruncCuboctahedron,1.35);
+    case 48:  return catalanDie(archTruncCuboctahedron,1.35,true);
     case 60:  return catalanDie(archRhombicosidodecahedron,1.35);
-    case 120: return catalanDie(archTruncIcosidodecahedron,1.35);
+    case 120: return catalanDie(archTruncIcosidodecahedron,1.35,0.85); // 1 fusionnerait les faces par paires
     case 100: return _trapezoGeo(); // d100 = paire de d10 (chaque dé est un d10)
     default:  return new THREE.IcosahedronGeometry(1.3);
   }
@@ -3416,12 +3435,11 @@ function _buildVertexTetra(bodyHex, numHex){
       group.add(pl);
       (plates[value]=plates[value]||[]).push(pl);
     });
-    // "haut" de référence pour l'orientation d'arrêt : la normale d'une face adjacente
-    // projetée perpendiculairement au sommet -> cette face part vers l'ARRIÈRE et les
-    // deux autres, séparées par une arête centrale, font face au joueur (vraie pyramide,
-    // résultat répété au sommet de chacune).
+    // "haut" de référence pour l'orientation d'arrêt : l'opposé de la normale d'une
+    // face adjacente, projeté perpendiculairement au sommet -> cette face se place
+    // DEVANT (chiffre droit face au joueur), les deux autres partent en arrière.
     var fn=adj[0].normal.clone();
-    var upRef=fn.clone().addScaledVector(dir,-fn.dot(dir)).normalize();
+    var upRef=fn.clone().addScaledVector(dir,-fn.dot(dir)).multiplyScalar(-1).normalize();
     vFaces.push({value:value, normal:dir, center:v.clone(), inradius:0.3, upRef:upRef});
   });
   var _haloHex=_diceInk(bodyHex);
