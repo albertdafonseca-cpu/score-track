@@ -3009,7 +3009,10 @@ function dieNumTexture(n, colorHex, dense){
   // (couleur des scores sur fond de carte, comme sur les cartes). Glyphe net.
   x.fillStyle=col; x.fillText(n,64,66);
   if(n==='6'||n==='9'){ var w=fs*0.5; x.fillRect(64-w/2,66+fs*0.42,w,5); }
-  var t=new THREE.CanvasTexture(c); t.anisotropy=16; return t; // 16 : chiffres nets en vue rasante (Three plafonne au max du GPU)
+  var t=new THREE.CanvasTexture(c); t.anisotropy=16; // 16 : chiffres nets en vue rasante (Three plafonne au max du GPU)
+  // encombrement du glyphe en fraction du côté de la plaque (largeur mesurée, hauteur ~0.78 fs avec soulignement)
+  t.userData.box={w:Math.min(0.95,(x.measureText(n).width+6)/128), h:Math.min(0.95,(fs*0.78+6)/128)};
+  return t;
 }
 function dieExtractFaces(geo){
   if(geo.index!==null) geo=geo.toNonIndexed();  // évite le warning si déjà non-indexé
@@ -3110,14 +3113,6 @@ function buildNumberedDie(geo, N, bodyHex, numHex, digitSize, bodyGeoOverride, p
     if(ds<0.22) ds=0.22;                // plancher lisible
     var label=(labels[f.value]!==undefined)?labels[f.value]:f.value;
     var dense=(ds<0.45); // petites plaques (d48, d120) : glyphe agrandi dans la texture
-    var pl=new THREE.Mesh(new THREE.PlaneGeometry(ds,ds),
-      new THREE.MeshBasicMaterial({map:_numTex(label,numHex,dense),transparent:true,depthWrite:false,side:THREE.FrontSide})); // FrontSide : une face cachée ne laisse pas dépasser son chiffre au bord du corps arrondi
-    if(plateOffset){
-      // offset explicite : poser le chiffre à distance poff de l'origine le long de la normale
-      pl.position.copy(f.normal).multiplyScalar(poff);
-    } else {
-      pl.position.copy(f.center).addScaledVector(f.normal,0.012);
-    }
     // "haut" de référence : +Y monde, ou +Z si la face est quasi horizontale
     var worldUp=new THREE.Vector3(0,1,0);
     if(Math.abs(f.normal.dot(worldUp))>0.94) worldUp.set(0,0,1);
@@ -3125,6 +3120,38 @@ function buildNumberedDie(geo, N, bodyHex, numHex, digitSize, bodyGeoOverride, p
     var trueUp=worldUp.clone().addScaledVector(f.normal,-worldUp.dot(f.normal));
     if(trueUp.lengthSq()<1e-6) trueUp.set(1,0,0); else trueUp.normalize();
     var right=new THREE.Vector3().crossVectors(trueUp,f.normal).normalize();
+    var tex=_numTex(label,numHex,dense);
+    if(dense && f.poly && f.poly.length>=3){
+      // Petites faces (triangles allongés du d48/d120) : le cercle inscrit est très
+      // conservateur. On ajuste la plaque au VRAI polygone de la face, dans l'orientation
+      // du chiffre : le rectangle du glyphe (box) doit rester à l'intérieur de chaque
+      // arête (moins la moitié de l'arrondi, tangent à la face).
+      // encombrement de référence : le libellé le plus large du dé (même taille de
+      // chiffres pour "1" et "120" ; seule l'orientation de la face fait varier la place)
+      var refLabel=(labels[N]!==undefined)?labels[N]:N;
+      var refTex=_numTex(refLabel,numHex,true);
+      var box=(refTex.userData&&refTex.userData.box)||{w:0.9,h:0.5};
+      var fitPoly=Infinity;
+      for(var ei=0;ei<f.poly.length;ei++){
+        var pa=f.poly[ei], pb=f.poly[(ei+1)%f.poly.length];
+        var e=pb.clone().sub(pa); if(e.lengthSq()<1e-8) continue; e.normalize();
+        var mIn=new THREE.Vector3().crossVectors(f.normal,e).normalize();
+        var toC=f.center.clone().sub(pa); if(toC.dot(mIn)<0) mIn.negate();
+        var dist=toC.dot(mIn)-_rr*0.5;
+        var ext=0.5*(box.w*Math.abs(mIn.dot(right))+box.h*Math.abs(mIn.dot(trueUp)));
+        if(ext>1e-6) fitPoly=Math.min(fitPoly, dist/ext);
+      }
+      // borné à 1.5 x l'ajustement au cercle inscrit : gain net, sans écarts criants d'une face à l'autre
+      if(isFinite(fitPoly)) ds=Math.min(DS_TARGET, Math.max(ds, Math.min(fitPoly, ds*1.5)));
+    }
+    var pl=new THREE.Mesh(new THREE.PlaneGeometry(ds,ds),
+      new THREE.MeshBasicMaterial({map:tex,transparent:true,depthWrite:false,side:THREE.FrontSide})); // FrontSide : une face cachée ne laisse pas dépasser son chiffre au bord du corps arrondi
+    if(plateOffset){
+      // offset explicite : poser le chiffre à distance poff de l'origine le long de la normale
+      pl.position.copy(f.normal).multiplyScalar(poff);
+    } else {
+      pl.position.copy(f.center).addScaledVector(f.normal,0.012);
+    }
     // base orthonormée directe : X=right, Y=trueUp, Z=normal (face vers l'extérieur)
     var m=new THREE.Matrix4().makeBasis(right,trueUp,f.normal);
     pl.quaternion.setFromRotationMatrix(m);
