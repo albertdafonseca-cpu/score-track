@@ -2993,19 +2993,23 @@ function catalanDie(archFn, radius, onSphere){
 }
 
 /* ═══════ RENDU DÉ COMPLET (faces + chiffres + orientation) ═══════ */
-function dieNumTexture(n, colorHex){
+// dense : glyphe agrandi dans sa texture (~90 % de la largeur) pour les PETITES plaques
+// (d48, d120) ; les autres dés gardent le glyphe validé (marge autour du chiffre).
+function dieNumTexture(n, colorHex, dense){
   var c=document.createElement('canvas'); c.width=c.height=128;
   var x=c.getContext('2d'); x.clearRect(0,0,128,128);
   var col='#'+colorHex.toString(16).padStart(6,'0');
   n=''+n; // libellé texte : "7", "0", "00", "90"...
-  var s=n.length; var fs = s>=3 ? 46 : (s===2 ? 60 : 76);
+  var s=n.length;
+  var fs = dense ? (s>=3 ? 56 : (s===2 ? 72 : 88)) : (s>=3 ? 46 : (s===2 ? 60 : 76));
   x.font='bold '+fs+'px Arial, sans-serif';
+  var mw=x.measureText(n).width; if(mw>114){ fs=Math.floor(fs*114/mw); x.font='bold '+fs+'px Arial, sans-serif'; }
   x.textAlign='center'; x.textBaseline='middle';
   // Pas de contour : le contraste chiffre/corps est garanti par construction
   // (couleur des scores sur fond de carte, comme sur les cartes). Glyphe net.
   x.fillStyle=col; x.fillText(n,64,66);
   if(n==='6'||n==='9'){ var w=fs*0.5; x.fillRect(64-w/2,66+fs*0.42,w,5); }
-  var t=new THREE.CanvasTexture(c); t.anisotropy=4; return t;
+  var t=new THREE.CanvasTexture(c); t.anisotropy=16; return t; // 16 : chiffres nets en vue rasante (Three plafonne au max du GPU)
 }
 function dieExtractFaces(geo){
   if(geo.index!==null) geo=geo.toNonIndexed();  // évite le warning si déjà non-indexé
@@ -3097,15 +3101,17 @@ function buildNumberedDie(geo, N, bodyHex, numHex, digitSize, bodyGeoOverride, p
     // 2.0 x inradius reste donc contenue dans le cercle inscrit de la face.
     var DS_TARGET=0.72;                 // plafond global
     var _rr=(bodyGeoOverride&&bodyGeoOverride.userData&&bodyGeoOverride.userData.roundR)||0;
-    // le glyphe n'occupe que ~70 % de sa plaque : une plaque de 2 x (inradius - r/2)
-    // garde le glyphe sur la partie PLANE (inradius - r), sans chiffre flottant au-dessus de l'arrondi
-    var flatIn=Math.max(0.05,(f.inradius||0.5)-_rr*0.5);
-    var dsFit=flatIn*2.0;
+    // la demi-diagonale du glyphe vaut ~0.35 x côté de plaque : une plaque de
+    // 2.6 x (inradius - r) garde le glyphe sur la partie PLANE de la face (inradius - r),
+    // sans chiffre flottant au-dessus de l'arrondi
+    var flatIn=Math.max(0.05,(f.inradius||0.5)-_rr);
+    var dsFit=flatIn*2.6;
     var ds=Math.min(DS_TARGET, dsFit);
     if(ds<0.22) ds=0.22;                // plancher lisible
     var label=(labels[f.value]!==undefined)?labels[f.value]:f.value;
+    var dense=(ds<0.45); // petites plaques (d48, d120) : glyphe agrandi dans la texture
     var pl=new THREE.Mesh(new THREE.PlaneGeometry(ds,ds),
-      new THREE.MeshBasicMaterial({map:_numTex(label,numHex),transparent:true,depthWrite:false,side:THREE.FrontSide})); // FrontSide : une face cachée ne laisse pas dépasser son chiffre au bord du corps arrondi
+      new THREE.MeshBasicMaterial({map:_numTex(label,numHex,dense),transparent:true,depthWrite:false,side:THREE.FrontSide})); // FrontSide : une face cachée ne laisse pas dépasser son chiffre au bord du corps arrondi
     if(plateOffset){
       // offset explicite : poser le chiffre à distance poff de l'origine le long de la normale
       pl.position.copy(f.normal).multiplyScalar(poff);
@@ -3494,9 +3500,9 @@ function _chamferSolid(geo, t){
 }
 // Cache de textures-chiffres (par valeur+couleur) : évite de régénérer 120 canvases.
 var _numTexCache={};
-function _numTex(value,colorHex){
-  var key=value+'_'+colorHex;
-  if(!_numTexCache[key]) _numTexCache[key]=dieNumTexture(value,colorHex);
+function _numTex(value,colorHex,dense){
+  var key=value+'_'+colorHex+(dense?'_d':'');
+  if(!_numTexCache[key]) _numTexCache[key]=dieNumTexture(value,colorHex,dense);
   return _numTexCache[key];
 }
 // d4 "vrai" : les chiffres sont écrits près des SOMMETS (3 par face) ; la valeur lue
@@ -9704,7 +9710,7 @@ function _dieFaceTexture(v, bodyHex, pipHex){
     // reflet
     x.beginPath(); x.arc(cx-8,cy-8,7,0,7); x.fillStyle='rgba(255,255,255,0.55)'; x.fill();
   });
-  var t=new THREE.CanvasTexture(c); t.anisotropy=4; return t;
+  var t=new THREE.CanvasTexture(c); t.anisotropy=16; return t; // 16 : chiffres nets en vue rasante (Three plafonne au max du GPU)
 }
 
 // rotation cible pour amener la valeur v face caméra (+Z)
