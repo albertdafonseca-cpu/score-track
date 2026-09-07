@@ -3096,7 +3096,11 @@ function buildNumberedDie(geo, N, bodyHex, numHex, digitSize, bodyGeoOverride, p
     // Le glyphe occupe ~0.35 de la demi-diagonale de sa plaque : une plaque de côté
     // 2.0 x inradius reste donc contenue dans le cercle inscrit de la face.
     var DS_TARGET=0.72;                 // plafond global
-    var dsFit=(f.inradius||0.5)*2.0;    // tient à l'intérieur de la face (vrai inradius)
+    var _rr=(bodyGeoOverride&&bodyGeoOverride.userData&&bodyGeoOverride.userData.roundR)||0;
+    // le glyphe n'occupe que ~70 % de sa plaque : une plaque de 2 x (inradius - r/2)
+    // garde le glyphe sur la partie PLANE (inradius - r), sans chiffre flottant au-dessus de l'arrondi
+    var flatIn=Math.max(0.05,(f.inradius||0.5)-_rr*0.5);
+    var dsFit=flatIn*2.0;
     var ds=Math.min(DS_TARGET, dsFit);
     if(ds<0.22) ds=0.22;                // plancher lisible
     var label=(labels[f.value]!==undefined)?labels[f.value]:f.value;
@@ -3377,7 +3381,7 @@ function _diceInk(bodyHex){ return _contrastInk(bodyHex); }
 // exactes (plates) sur les faces : arêtes douces qui accrochent la lumière, faces nettes.
 // Construction : centre de coin c_v = point à distance r de tous les plans incidents au
 // sommet v ; tous les points de la surface s'écrivent c_v + r * direction.
-var ROUND_R=0.09;    // rayon d'arrondi des arêtes (unités scène ; dé de rayon 1.42)
+var ROUND_R=0.18;    // rayon d'arrondi des arêtes et pointes (unités scène ; dé de rayon 1.42) : pointes en vraie courbe
 var ROUND_SEGS=4;    // segments par quart de cylindre
 function _roundedBody(geo, r, segs){
   segs=segs||ROUND_SEGS;
@@ -3449,6 +3453,7 @@ function _roundedBody(geo, r, segs){
   out.setAttribute('position', new THREE.Float32BufferAttribute(pos,3));
   out.setAttribute('normal', new THREE.Float32BufferAttribute(nor,3));
   out.userData.flatShade=false; // normales explicites : faces plates, arrondis lissés
+  out.userData.roundR=r;        // pour dimensionner les chiffres sur la partie PLANE des faces
   return out;
 }
 // Rayon d'arrondi adapté au dé : plafonné à une fraction du plus petit rayon inscrit
@@ -3456,7 +3461,7 @@ function _roundedBody(geo, r, segs){
 function _roundRadiusFor(geo){
   var faces=dieExtractFaces(geo), m=Infinity;
   faces.forEach(function(f){ if(f.inradius<m) m=f.inradius; });
-  return Math.min(ROUND_R, (isFinite(m)?m:0.3)*0.45);
+  return Math.min(ROUND_R, (isFinite(m)?m:0.3)*0.30);
 }
 // Corps du dé : arrondi si possible, chanfrein en repli.
 function _dieBody(geo, rOverride){
