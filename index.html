@@ -3101,7 +3101,7 @@ function buildNumberedDie(geo, N, bodyHex, numHex, digitSize, bodyGeoOverride, p
     if(ds<0.22) ds=0.22;                // plancher lisible
     var label=(labels[f.value]!==undefined)?labels[f.value]:f.value;
     var pl=new THREE.Mesh(new THREE.PlaneGeometry(ds,ds),
-      new THREE.MeshBasicMaterial({map:_numTex(label,numHex),transparent:true,depthWrite:false,side:THREE.DoubleSide}));
+      new THREE.MeshBasicMaterial({map:_numTex(label,numHex),transparent:true,depthWrite:false,side:THREE.FrontSide})); // FrontSide : une face cachée ne laisse pas dépasser son chiffre au bord du corps arrondi
     if(plateOffset){
       // offset explicite : poser le chiffre à distance poff de l'origine le long de la normale
       pl.position.copy(f.normal).multiplyScalar(poff);
@@ -3459,8 +3459,8 @@ function _roundRadiusFor(geo){
   return Math.min(ROUND_R, (isFinite(m)?m:0.3)*0.45);
 }
 // Corps du dé : arrondi si possible, chanfrein en repli.
-function _dieBody(geo){
-  try { return _roundedBody(geo, _roundRadiusFor(geo)); }
+function _dieBody(geo, rOverride){
+  try { return _roundedBody(geo, rOverride||_roundRadiusFor(geo)); }
   catch(e){ return _chamferSolid(geo, CHAMFER_T); }
 }
 // Tronque légèrement chaque sommet d'un solide convexe : on remplace la pointe par
@@ -3501,7 +3501,7 @@ function _buildVertexTetra(bodyHex, numHex){
   var geo=new THREE.TetrahedronGeometry(1.4);
   _normalizeGeoRadius(geo, DICE_TARGET_R*1.12); // un tétraèdre paraît petit : rayon légèrement majoré
   var group=new THREE.Group();
-  var bodyGeo=_dieBody(geo);
+  var bodyGeo=_dieBody(geo, D4_ROUND_R); // pointes bien arrondies (grandes faces : on peut se le permettre)
   var mat=new THREE.MeshStandardMaterial({color:bodyHex,roughness:0.42,metalness:0.14,flatShading:(bodyGeo.userData.flatShade!==false)});
   group.add(new THREE.Mesh(bodyGeo,mat));
   var faces=dieExtractFaces(geo);
@@ -3522,7 +3522,7 @@ function _buildVertexTetra(bodyHex, numHex){
       var up=toV.clone().normalize();
       var right=new THREE.Vector3().crossVectors(up,f.normal).normalize();
       var pl=new THREE.Mesh(new THREE.PlaneGeometry(ds,ds),
-        new THREE.MeshBasicMaterial({map:_numTex(value,numHex),transparent:true,depthWrite:false,side:THREE.DoubleSide}));
+        new THREE.MeshBasicMaterial({map:_numTex(value,numHex),transparent:true,depthWrite:false,side:THREE.FrontSide}));
       pl.position.copy(f.center).addScaledVector(toV,0.52).addScaledVector(f.normal,0.012);
       pl.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(right,up,f.normal));
       group.add(pl);
@@ -3547,7 +3547,8 @@ function _buildVertexTetra(bodyHex, numHex){
   return group;
 }
 var _D4_TILT=2.5; // d4 : part de +Y ajoutée à la direction caméra pour la pointe (plus grand = plus vertical : pyramide posée)
-var _D4_YAW=20;   // d4 : rotation autour de la pointe (0 = face devant, 60 = arête devant) -> trois-quarts
+var D4_ROUND_R=0.20; // d4 : rayon d'arrondi des arêtes/pointes (plus fort que ROUND_R)
+var _D4_YAW=40;   // d4 : rotation autour de la pointe (0 = face devant, 60 = arête devant) -> trois-quarts
 // Construit un dé complet selon le type. Renvoie {group, faces, N, type, special}
 // variant : 'tens' pour le dé des dizaines du d100 (faces 00,10,...,90)
 function buildDieByType(type, bodyHex, numHex, variant){
