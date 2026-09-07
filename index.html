@@ -3046,6 +3046,7 @@ function dieExtractFaces(geo){
       if(d<rin) rin=d;
     }
     f.inradius=(isFinite(rin)&&rin>1e-4)?rin:f.circum*0.5;
+    f.poly=uniq; // sommets ordonnés (sens direct autour de la normale)
   });
   return faces;
 }
@@ -3370,6 +3371,98 @@ function _diceNumColor(){
 // Encre des dés (chiffres, arêtes, halo) : contraste de LUMINANCE garanti avec le
 // corps -> lisible aussi pour les daltoniens (jamais un contraste de teinte seule).
 function _diceInk(bodyHex){ return _contrastInk(bodyHex); }
+// Corps ARRONDI d'un solide convexe (aspect résine des vrais dés) : chaque face reste
+// plane mais rétrécie de r ; chaque arête devient un quart de cylindre de rayon r et
+// chaque sommet une calotte sphérique. Les normales sont lissées sur les arrondis et
+// exactes (plates) sur les faces : arêtes douces qui accrochent la lumière, faces nettes.
+// Construction : centre de coin c_v = point à distance r de tous les plans incidents au
+// sommet v ; tous les points de la surface s'écrivent c_v + r * direction.
+var ROUND_R=0.09;    // rayon d'arrondi des arêtes (unités scène ; dé de rayon 1.42)
+var ROUND_SEGS=4;    // segments par quart de cylindre
+function _roundedBody(geo, r, segs){
+  segs=segs||ROUND_SEGS;
+  var faces=dieExtractFaces(geo);
+  var key=function(v){return v.x.toFixed(4)+'|'+v.y.toFixed(4)+'|'+v.z.toFixed(4);};
+  // sommets uniques + faces incidentes ; arêtes -> 2 faces
+  var verts={}, edges={};
+  faces.forEach(function(f,fi){
+    f.d=f.normal.dot(f.center);
+    var P=f.poly;
+    P.forEach(function(v,i){
+      var k=key(v); if(!verts[k]) verts[k]={p:v.clone(), faces:[]}; verts[k].faces.push(fi);
+      var w=P[(i+1)%P.length], kw=key(w), ek=(k<kw)?k+'##'+kw:kw+'##'+k;
+      if(!edges[ek]) edges[ek]={a:k,b:kw,faces:[]}; edges[ek].faces.push(fi);
+    });
+  });
+  // centre de coin : moindres carrés sur (n_i . x = d_i - r)
+  Object.keys(verts).forEach(function(k){
+    var V=verts[k], M=new THREE.Matrix3(), me=[0,0,0,0,0,0,0,0,0], b=new THREE.Vector3();
+    V.faces.forEach(function(fi){
+      var n=faces[fi].normal, t=faces[fi].d-r;
+      me[0]+=n.x*n.x; me[1]+=n.x*n.y; me[2]+=n.x*n.z;
+      me[3]+=n.y*n.x; me[4]+=n.y*n.y; me[5]+=n.y*n.z;
+      me[6]+=n.z*n.x; me[7]+=n.z*n.y; me[8]+=n.z*n.z;
+      b.addScaledVector(n,t);
+    });
+    M.set(me[0],me[1],me[2], me[3],me[4],me[5], me[6],me[7],me[8]);
+    var det=M.determinant();
+    if(Math.abs(det)<1e-9){ V.c=V.p.clone().multiplyScalar(1-r/Math.max(1e-3,V.p.length())); }
+    else { V.c=b.clone().applyMatrix3(M.clone().invert()); }
+  });
+  var pts=[], nrm={};
+  function add(p,n){ pts.push(p); nrm[key(p)]=n.clone(); }
+  // 1) coins des faces planes rétrécies
+  faces.forEach(function(f){ f.poly.forEach(function(v){ var V=verts[key(v)]; add(V.c.clone().addScaledVector(f.normal,r), f.normal); }); });
+  // 2) arêtes : arc de nA vers nB
+  Object.keys(edges).forEach(function(ek){
+    var E=edges[ek]; if(E.faces.length<2) return;
+    var nA=faces[E.faces[0]].normal, nB=faces[E.faces[1]].normal;
+    var phi=Math.acos(Math.max(-1,Math.min(1,nA.dot(nB)))); if(phi<1e-4) return;
+    for(var j=1;j<segs;j++){
+      var t=j/segs, u=nA.clone().multiplyScalar(Math.sin((1-t)*phi)).addScaledVector(nB,Math.sin(t*phi)).multiplyScalar(1/Math.sin(phi)).normalize();
+      [E.a,E.b].forEach(function(k){ add(verts[k].c.clone().addScaledVector(u,r), u); });
+    }
+  });
+  // 3) calottes des sommets
+  Object.keys(verts).forEach(function(k){
+    var V=verts[k], dir=V.p.clone().sub(V.c).normalize();
+    add(V.c.clone().addScaledVector(dir,r), dir);
+    V.faces.forEach(function(fi){
+      var n=faces[fi].normal, m=dir.clone().add(n).normalize();
+      add(V.c.clone().addScaledVector(m,r), m);
+    });
+  });
+  var hull=new THREE.ConvexGeometry(pts);
+  var hp=hull.attributes.position, pos=[], nor=[];
+  var a=new THREE.Vector3(), b2=new THREE.Vector3(), c=new THREE.Vector3(), tn=new THREE.Vector3();
+  for(var i=0;i<hp.count;i+=3){
+    a.fromBufferAttribute(hp,i); b2.fromBufferAttribute(hp,i+1); c.fromBufferAttribute(hp,i+2);
+    tn.crossVectors(b2.clone().sub(a), c.clone().sub(a)).normalize();
+    var flat=null;
+    for(var fi=0;fi<faces.length;fi++){ if(faces[fi].normal.dot(tn)>0.9995){ flat=faces[fi].normal; break; } }
+    [a,b2,c].forEach(function(v){
+      pos.push(v.x,v.y,v.z);
+      var n=flat||nrm[key(v)]||tn; nor.push(n.x,n.y,n.z);
+    });
+  }
+  var out=new THREE.BufferGeometry();
+  out.setAttribute('position', new THREE.Float32BufferAttribute(pos,3));
+  out.setAttribute('normal', new THREE.Float32BufferAttribute(nor,3));
+  out.userData.flatShade=false; // normales explicites : faces plates, arrondis lissés
+  return out;
+}
+// Rayon d'arrondi adapté au dé : plafonné à une fraction du plus petit rayon inscrit
+// (les chiffres doivent rester sur la partie plane des faces).
+function _roundRadiusFor(geo){
+  var faces=dieExtractFaces(geo), m=Infinity;
+  faces.forEach(function(f){ if(f.inradius<m) m=f.inradius; });
+  return Math.min(ROUND_R, (isFinite(m)?m:0.3)*0.45);
+}
+// Corps du dé : arrondi si possible, chanfrein en repli.
+function _dieBody(geo){
+  try { return _roundedBody(geo, _roundRadiusFor(geo)); }
+  catch(e){ return _chamferSolid(geo, CHAMFER_T); }
+}
 // Tronque légèrement chaque sommet d'un solide convexe : on remplace la pointe par
 // une petite facette. Les faces d'origine restent planes, les arêtes restent nettes.
 function _chamferSolid(geo, t){
@@ -3406,10 +3499,10 @@ function _numTex(value,colorHex){
 // (3 faces) avec le résultat répété autour de la pointe, comme sur un d4 réel.
 function _buildVertexTetra(bodyHex, numHex){
   var geo=new THREE.TetrahedronGeometry(1.4);
-  _normalizeGeoRadius(geo, DICE_TARGET_R);
+  _normalizeGeoRadius(geo, DICE_TARGET_R*1.12); // un tétraèdre paraît petit : rayon légèrement majoré
   var group=new THREE.Group();
-  var bodyGeo=_chamferSolid(geo, CHAMFER_T);
-  var mat=new THREE.MeshStandardMaterial({color:bodyHex,roughness:0.42,metalness:0.14,flatShading:true});
+  var bodyGeo=_dieBody(geo);
+  var mat=new THREE.MeshStandardMaterial({color:bodyHex,roughness:0.42,metalness:0.14,flatShading:(bodyGeo.userData.flatShade!==false)});
   group.add(new THREE.Mesh(bodyGeo,mat));
   var faces=dieExtractFaces(geo);
   // sommets uniques du tétraèdre
@@ -3440,6 +3533,8 @@ function _buildVertexTetra(bodyHex, numHex){
     // DEVANT (chiffre droit face au joueur), les deux autres partent en arrière.
     var fn=adj[0].normal.clone();
     var upRef=fn.clone().addScaledVector(dir,-fn.dot(dir)).multiplyScalar(-1).normalize();
+    // vue de trois-quarts : 0° = face pile devant, 60° = arête devant
+    upRef.applyAxisAngle(dir, _D4_YAW*Math.PI/180);
     vFaces.push({value:value, normal:dir, center:v.clone(), inradius:0.3, upRef:upRef});
   });
   var _haloHex=_diceInk(bodyHex);
@@ -3451,7 +3546,8 @@ function _buildVertexTetra(bodyHex, numHex){
   group.userData.resultWidth=0.60; // agrandissement modéré : le chiffre reste près de la pointe
   return group;
 }
-var _D4_TILT=0.7; // d4 : part de +Y ajoutée à la direction caméra pour la pointe (plus grand = plus vertical)
+var _D4_TILT=2.5; // d4 : part de +Y ajoutée à la direction caméra pour la pointe (plus grand = plus vertical : pyramide posée)
+var _D4_YAW=20;   // d4 : rotation autour de la pointe (0 = face devant, 60 = arête devant) -> trois-quarts
 // Construit un dé complet selon le type. Renvoie {group, faces, N, type, special}
 // variant : 'tens' pour le dé des dizaines du d100 (faces 00,10,...,90)
 function buildDieByType(type, bodyHex, numHex, variant){
@@ -3482,7 +3578,7 @@ function buildDieByType(type, bodyHex, numHex, variant){
   _normalizeGeoRadius(geo, DICE_TARGET_R);
   // corps affiché : même traitement pour TOUS les solides (d4 -> d120) : chanfrein
   // léger des sommets, faces planes, arêtes nettes (rendu validé sur d8/d12/d20/d24/d30).
-  var bodyOverride=_chamferSolid(geo, CHAMFER_T);
+  var bodyOverride=_dieBody(geo);
   // libellés : d10 -> la face 10 s'écrit "0" ; dé des dizaines du d100 -> "10".."90","00"
   var labels;
   if(type===10||type===100){
