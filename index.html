@@ -3547,8 +3547,8 @@ function _buildVertexTetra(bodyHex, numHex){
   return group;
 }
 var _D4_TILT=2.5; // d4 : part de +Y ajoutée à la direction caméra pour la pointe (plus grand = plus vertical : pyramide posée)
-var D4_ROUND_R=0.20; // d4 : rayon d'arrondi des arêtes/pointes (plus fort que ROUND_R)
-var _D4_YAW=40;   // d4 : rotation autour de la pointe (0 = face devant, 60 = arête devant) -> trois-quarts
+var D4_ROUND_R=0.18; // d4 : rayon d'arrondi des arêtes/pointes (plus fort que ROUND_R)
+var _D4_YAW=30;   // d4 : rotation autour de la pointe (0 = face devant, 60 = arête devant) -> trois-quarts
 // Construit un dé complet selon le type. Renvoie {group, faces, N, type, special}
 // variant : 'tens' pour le dé des dizaines du d100 (faces 00,10,...,90)
 function buildDieByType(type, bodyHex, numHex, variant){
