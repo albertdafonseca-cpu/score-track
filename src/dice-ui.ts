@@ -31,13 +31,13 @@ export function diceT(key: string): string {
   var L: Record<string, Record<string, string>> = {
     fr:{title:'🎲 Lanceur de dés',faces:'Faces',count:'Dés',roll:'🎲 Lancer',add:'+ Ajouter',sub:'− Retirer',
         close:'Fermer',back:'← Retour',hist:'Historique',pickAdd:'Ajouter à quel joueur ?',
-        pickSub:'Retirer à quel joueur ?',empty:'Aucun lancer',sum:'Total',percent:'Pourcentage',type:'Type'},
+        pickSub:'Retirer à quel joueur ?',empty:'Aucun lancer',sum:'Total',type:'Type'},
     en:{title:'🎲 Dice roller',faces:'Faces',count:'Dice',roll:'🎲 Roll',add:'+ Add',sub:'− Remove',
         close:'Close',back:'← Back',hist:'History',pickAdd:'Add to which player?',
-        pickSub:'Remove from which player?',empty:'No rolls yet',sum:'Total',percent:'Percentage',type:'Type'},
+        pickSub:'Remove from which player?',empty:'No rolls yet',sum:'Total',type:'Type'},
     pt:{title:'🎲 Lançador de dados',faces:'Faces',count:'Dados',roll:'🎲 Lançar',add:'+ Adicionar',sub:'− Remover',
         close:'Fechar',back:'← Voltar',hist:'Histórico',pickAdd:'Adicionar a qual jogador?',
-        pickSub:'Remover de qual jogador?',empty:'Nenhum lançamento',sum:'Total',percent:'Porcentagem',type:'Tipo'}
+        pickSub:'Remover de qual jogador?',empty:'Nenhum lançamento',sum:'Total',type:'Tipo'}
   };
   return (L[lang]||L.fr)[key] ?? L.fr[key] ?? key;
 }
@@ -445,8 +445,8 @@ export function rollDice(): void {
   var showTotal = true; // toujours afficher le total, même à 1 dé
   if(showTotal){
     sumEl=document.createElement('div'); sumEl.className='dice-sum'; sumEl.style.opacity='0';
-    var label = isPercent ? diceT('percent') : diceT('sum');
-    sumEl.innerHTML=label+' : <b>'+sum+(isPercent?'%':'')+'</b>';
+    // d100 compris : on compte des points comme pour les autres dés (pas de « % », source de confusion)
+    sumEl.innerHTML=diceT('sum')+' : <b>'+sum+'</b>';
     res.appendChild(sumEl);
   }
   if(navigator.vibrate)navigator.vibrate([12,40,12,40,18,30]);
@@ -507,9 +507,10 @@ export function diceRenderHistory(): void {
     var cfg=document.createElement('span'); cfg.className='cfg';
     cfg.textContent = h.percent ? 'd100' : (h.count+'d'+h.faces);
     var res=document.createElement('span'); res.className='res';
-    res.textContent = h.percent ? (h.rolls[0]+''+h.rolls[1]) : h.rolls.join(' · ');
+    // d100 : les deux faces telles que lues sur les dés (dizaines 00..90, unités 0..9)
+    res.textContent = h.percent ? (String(h.rolls[0]*10).padStart(2,'0')+' · '+h.rolls[1]) : h.rolls.join(' · ');
     var tot=document.createElement('span'); tot.className='tot';
-    tot.textContent = h.sum + (h.percent?'%':'');
+    tot.textContent = String(h.sum);
     row.appendChild(cfg); row.appendChild(res); row.appendChild(tot);
     list!.appendChild(row); // list : testé en tête de fonction (rétrécissement perdu dans la fermeture)
   });
