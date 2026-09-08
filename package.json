@@ -1,0 +1,21 @@
+{
+  "name": "scoretrack",
+  "version": "74.0.0",
+  "private": true,
+  "description": "Compteur de scores universel + lanceur de dés 3D",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "watch": "node build.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run typecheck && npm run build"
+  },
+  "dependencies": {
+    "three": "0.149.0"
+  },
+  "devDependencies": {
+    "@types/three": "0.149.0",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2"
+  }
+}
