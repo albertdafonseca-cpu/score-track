@@ -3,13 +3,14 @@ import { ConvexGeometry } from 'three/examples/jsm/geometries/ConvexGeometry.js'
 import { t } from '../i18n';
 import { _DIE_TARGET, _DIE_TARGET_D3, _dieFaceTexture, _makeDie, _themeColorHex } from './cube';
 import { archIcosidodecahedron, archRhombicosidodecahedron, archRhombicuboctahedron, archTruncCuboctahedron, archTruncIcosidodecahedron, catalanDie } from './polyhedra';
+import type { BodyGeoUserData, DieFace, DieGroup, DiePlates, NumTexUserData, PlateMesh, RoundEdge, RoundVert } from './types';
 
 /* ═══════ RENDU DÉ COMPLET (faces + chiffres + orientation) ═══════ */
 // dense : glyphe agrandi dans sa texture (~90 % de la largeur) pour les PETITES plaques
 // (d48, d120) ; les autres dés gardent le glyphe validé (marge autour du chiffre).
-export function dieNumTexture(n, colorHex, dense){
+export function dieNumTexture(n: string | number, colorHex: number, dense?: boolean): THREE.CanvasTexture {
   var c=document.createElement('canvas'); c.width=c.height=128;
-  var x=c.getContext('2d'); x.clearRect(0,0,128,128);
+  var x=c.getContext('2d') as CanvasRenderingContext2D; x.clearRect(0,0,128,128); // contexte 2D toujours disponible sur un canvas neuf (comme avant : erreur sinon)
   var col='#'+colorHex.toString(16).padStart(6,'0');
   n=''+n; // libellé texte : "7", "0", "00", "90"...
   var s=n.length;
@@ -28,12 +29,12 @@ export function dieNumTexture(n, colorHex, dense){
   if(n==='6'||n==='9'){ var w=fs*0.5; x.fillRect(64-w/2,66+fs*0.42,w,5); }
   var t=new THREE.CanvasTexture(c); t.anisotropy=16; // 16 : chiffres nets en vue rasante (Three plafonne au max du GPU)
   // encombrement du glyphe en fraction du côté de la plaque (largeur mesurée, hauteur ~0.78 fs avec soulignement)
-  t.userData.box={w:Math.min(0.95,(x.measureText(n).width+6)/128), h:Math.min(0.95,(fs*0.78+6)/128)};
+  (t.userData as NumTexUserData).box={w:Math.min(0.95,(x.measureText(n).width+6)/128), h:Math.min(0.95,(fs*0.78+6)/128)};
   return t;
 }
-export function dieExtractFaces(geo){
+export function dieExtractFaces(geo: THREE.BufferGeometry): DieFace[] {
   if(geo.index!==null) geo=geo.toNonIndexed();  // évite le warning si déjà non-indexé
-  var pos=geo.attributes.position, nrm=geo.attributes.normal; var faces=[];
+  var pos=geo.attributes.position as THREE.BufferAttribute, nrm=geo.attributes.normal as THREE.BufferAttribute; var faces: DieFace[]=[];
   for(var i=0;i<pos.count;i+=3){
     var a=new THREE.Vector3().fromBufferAttribute(pos,i);
     var b=new THREE.Vector3().fromBufferAttribute(pos,i+1);
@@ -41,12 +42,13 @@ export function dieExtractFaces(geo){
     var center=a.clone().add(b).add(c).multiplyScalar(1/3);
     var n=new THREE.Vector3().fromBufferAttribute(nrm,i).normalize();
     var f=faces.find(function(f){return f.normal.dot(n)>0.9985;}); // fusion sur la normale seule (faces multi-triangles)
-    if(!f){ faces.push({normal:n.clone(), center:center.clone(), acc:center.clone(), cnt:1, verts:[a.clone(),b.clone(),c.clone()]}); }
-    else { f.acc.add(center); f.cnt++; f.verts.push(a.clone(),b.clone(),c.clone()); }
+    // face en construction : inradius/poly calculés juste après, value posée par dieAssignValues
+    if(!f){ faces.push({normal:n.clone(), center:center.clone(), acc:center.clone(), cnt:1, verts:[a.clone(),b.clone(),c.clone()]} as DieFace); }
+    else { f.acc!.add(center); f.cnt!++; f.verts.push(a.clone(),b.clone(),c.clone()); }
   }
   faces.forEach(function(f){
     // sommets uniques du polygone (le hull ne crée pas de sommet interne)
-    var uniq=[], seen={};
+    var uniq: THREE.Vector3[]=[], seen: Record<string, 1>={};
     f.verts.forEach(function(v){ var k=v.x.toFixed(4)+'|'+v.y.toFixed(4)+'|'+v.z.toFixed(4);
       if(!seen[k]){ seen[k]=1; uniq.push(v); } });
     f.center.set(0,0,0); uniq.forEach(function(v){ f.center.add(v); }); f.center.multiplyScalar(1/Math.max(1,uniq.length));
@@ -74,8 +76,8 @@ export function dieExtractFaces(geo){
   });
   return faces;
 }
-export function dieAssignValues(faces,N){
-  var used=new Array(faces.length).fill(false); var pairs=[];
+export function dieAssignValues(faces: DieFace[], N: number): void {
+  var used=new Array(faces.length).fill(false); var pairs: [number, number][]=[];
   for(var i=0;i<faces.length;i++){
     if(used[i])continue;
     var best=-1,bd=1;
@@ -93,14 +95,14 @@ export function dieAssignValues(faces,N){
     v++;
   });
 }
-export function buildNumberedDie(geo, N, bodyHex, numHex, digitSize, bodyGeoOverride, plateOffset, labels){
-  var group=new THREE.Group();
+export function buildNumberedDie(geo: THREE.BufferGeometry, N: number, bodyHex: number, numHex: number, digitSize?: number, bodyGeoOverride?: THREE.BufferGeometry, plateOffset?: number, labels?: Record<number, string>): DieGroup {
+  var group=new THREE.Group() as DieGroup;
   labels=labels||{}; // libellé optionnel par valeur (ex. d10 : {10:'0'} ; d100 dizaines : {1:'10',...,10:'00'})
   // corps affiché : override si fourni (solide chanfreiné), sinon la géométrie brute
   var bodyGeo=bodyGeoOverride||geo;
   // flatShading : nets par défaut ; un override est lissé sauf s'il porte
   // userData.flatShade (chanfrein) -> facettes et arêtes nettes.
-  var _flat = bodyGeoOverride ? (bodyGeoOverride.userData && bodyGeoOverride.userData.flatShade===true) : true;
+  var _flat = bodyGeoOverride ? (bodyGeoOverride.userData && (bodyGeoOverride.userData as BodyGeoUserData).flatShade===true) : true;
   // gros dés (>= 48 faces) : matériau plus mat -> facettes moins contrastées, boule lisible
   var _big=(N>=48);
   var mat=new THREE.MeshStandardMaterial({color:bodyHex,roughness:_big?0.62:0.42,metalness:_big?0.06:0.14,flatShading:_flat}); // jeux de lumière (rendu validé)
@@ -120,7 +122,7 @@ export function buildNumberedDie(geo, N, bodyHex, numHex, digitSize, bodyGeoOver
     // Le glyphe occupe ~0.35 de la demi-diagonale de sa plaque : une plaque de côté
     // 2.0 x inradius reste donc contenue dans le cercle inscrit de la face.
     var DS_TARGET=0.72;                 // plafond global
-    var _rr=(bodyGeoOverride&&bodyGeoOverride.userData&&bodyGeoOverride.userData.roundR)||0;
+    var _rr=(bodyGeoOverride&&bodyGeoOverride.userData&&(bodyGeoOverride.userData as BodyGeoUserData).roundR)||0;
     // la demi-diagonale du glyphe vaut ~0.35 x côté de plaque : une plaque de
     // 2.6 x (inradius - r) garde le glyphe sur la partie PLANE de la face (inradius - r),
     // sans chiffre flottant au-dessus de l'arrondi
@@ -147,7 +149,7 @@ export function buildNumberedDie(geo, N, bodyHex, numHex, digitSize, bodyGeoOver
       // chiffres pour "1" et "120" ; seule l'orientation de la face fait varier la place)
       var refLabel=(labels[N]!==undefined)?labels[N]:N;
       var refTex=_numTex(refLabel,numHex,true);
-      var box=(refTex.userData&&refTex.userData.box)||{w:0.9,h:0.5};
+      var box=(refTex.userData&&(refTex.userData as NumTexUserData).box)||{w:0.9,h:0.5};
       var fitPoly=Infinity;
       for(var ei=0;ei<f.poly.length;ei++){
         var pa=f.poly[ei], pb=f.poly[(ei+1)%f.poly.length];
@@ -162,7 +164,7 @@ export function buildNumberedDie(geo, N, bodyHex, numHex, digitSize, bodyGeoOver
       if(isFinite(fitPoly)) ds=Math.min(DS_TARGET, Math.max(ds, Math.min(fitPoly, ds*1.5)));
     }
     var pl=new THREE.Mesh(new THREE.PlaneGeometry(ds,ds),
-      new THREE.MeshBasicMaterial({map:tex,transparent:true,depthWrite:false,side:THREE.FrontSide})); // FrontSide : une face cachée ne laisse pas dépasser son chiffre au bord du corps arrondi
+      new THREE.MeshBasicMaterial({map:tex,transparent:true,depthWrite:false,side:THREE.FrontSide})) as PlateMesh; // FrontSide : une face cachée ne laisse pas dépasser son chiffre au bord du corps arrondi
     pl.userData.label=label; pl.userData.dense=dense; // pour rebasculer le chiffre cerclé sur la texture standard
     if(plateOffset){
       // offset explicite : poser le chiffre à distance poff de l'origine le long de la normale
@@ -190,7 +192,7 @@ export function buildNumberedDie(geo, N, bodyHex, numHex, digitSize, bodyGeoOver
 }
 // Oriente toutes les plaques-chiffres (et le halo) face à la caméra : chiffres
 // toujours droits dans le sens de l'écran, quel que soit l'angle du dé.
-export function _dieBillboard(group, camera){
+export function _dieBillboard(group: DieGroup | null | undefined, camera: THREE.Camera | null | undefined): void {
   if(!group || !group.userData || !group.userData.plates || !camera) return;
   var gq=group.getWorldQuaternion(new THREE.Quaternion());
   var target=gq.invert().multiply(camera.quaternion); // quat local -> face écran
@@ -204,9 +206,9 @@ export function _dieBillboard(group, camera){
 // Surligne la face résultat : place l'anneau halo autour du chiffre gagnant.
 export var _RESULT_SCALE=1.35;   // agrandissement minimal du chiffre du résultat
 export var _RESULT_WIDTH=0.78;   // largeur visée de la plaque agrandie (lisible sur d48/d60/d120)
-export function dieHighlightFace(group, val){
+export function dieHighlightFace(group: DieGroup | null | undefined, val: number): void {
   if(!group || !group.userData || !group.userData.halo) return;
-  var plates=(group.userData.plates)||{};
+  var plates: DiePlates=(group.userData.plates)||{};
   var arr=plates[val];
   var halo=group.userData.halo;
   if(!arr || !arr.length){ halo.visible=false; return; }
@@ -217,14 +219,14 @@ export function dieHighlightFace(group, val){
     var gq=group.getWorldQuaternion(new THREE.Quaternion()), bestD=-2;
     arr.forEach(function(p){
       var n=new THREE.Vector3(0,0,1).applyQuaternion(p.quaternion).applyQuaternion(gq);
-      var d=n.dot(group.userData.camDir); if(d>bestD){ bestD=d; pl=p; }
+      var d=n.dot(group.userData.camDir!); if(d>bestD){ bestD=d; pl=p; } // camDir : testé juste au-dessus
     });
   }
   var w=(pl.geometry && pl.geometry.parameters && pl.geometry.parameters.width)||0.8;
   if(pl.userData.dense && group.userData.numHex!==undefined){
     // chiffre cerclé : texture STANDARD (glyphe à taille d'origine, encre ivoire) ;
     // seuls les chiffres non cerclés gardent le glyphe agrandi / l'encre blanche
-    pl.material.map=_numTex(pl.userData.label, group.userData.numHex, false); pl.material.needsUpdate=true;
+    pl.material.map=_numTex(pl.userData.label!, group.userData.numHex, false); pl.material.needsUpdate=true; // label : toujours posé sur les plaques des dés à chiffres
   }
   // petites faces (gros dés) : on agrandit davantage pour atteindre une largeur lisible
   var rw=group.userData.resultWidth||_RESULT_WIDTH;
@@ -238,39 +240,39 @@ export function dieHighlightFace(group, val){
   halo.scale.setScalar(w*sc*0.875);              // le halo entoure le chiffre agrandi
   halo.visible=true;
 }
-export function dieClearHighlight(group){
+export function dieClearHighlight(group: DieGroup | null | undefined): void {
   if(!group || !group.userData) return;
   if(group.userData.halo) group.userData.halo.visible=false;
-  var plates=group.userData.plates||{};                 // restaure la taille (et la texture) des chiffres
+  var plates: DiePlates=group.userData.plates||{};                 // restaure la taille (et la texture) des chiffres
   Object.keys(plates).forEach(function(k){
     (plates[k]||[]).forEach(function(p){
       if(p.userData._baseScale) p.scale.copy(p.userData._baseScale);
       if(p.userData.dense && group.userData.numHex!==undefined){
-        var dt=_numTex(p.userData.label, group.userData.numHex, true);
+        var dt=_numTex(p.userData.label!, group.userData.numHex, true); // label : toujours posé sur les plaques des dés à chiffres
         if(p.material.map!==dt){ p.material.map=dt; p.material.needsUpdate=true; }
       }
     });
   });
 }
 // À l'arrêt : n'affiche que la plaque de la valeur du dessus (dés numérotés).
-export function dieShowSingle(group, val){
+export function dieShowSingle(group: DieGroup | null | undefined, val: number): void {
   if(!group || !group.userData || !group.userData.numbered) return;
-  var plates=group.userData.plates||{};
+  var plates: DiePlates=group.userData.plates||{};
   Object.keys(plates).forEach(function(k){
     var show=(parseInt(k,10)===val);
     plates[k].forEach(function(pl){ pl.visible=show; });
   });
 }
 // Remontre toutes les plaques (aperçu au repos / avant un nouveau lancer).
-export function dieShowAll(group){
+export function dieShowAll(group: DieGroup | null | undefined): void {
   if(!group || !group.userData || !group.userData.numbered) return;
-  var plates=group.userData.plates||{};
+  var plates: DiePlates=group.userData.plates||{};
   Object.keys(plates).forEach(function(k){
     plates[k].forEach(function(pl){ pl.visible=true; });
   });
 }
-export function dieTopQuaternion(group, value, camDir){
-  var faces=group.userData.faces;
+export function dieTopQuaternion(group: DieGroup, value: number, camDir?: THREE.Vector3 | null): THREE.Quaternion {
+  var faces=group.userData.faces!; // dés à faces uniquement (le cube est traité par dieStopQuaternion)
   var f=faces.find(function(f){return f.value===value;});
   if(!f) return new THREE.Quaternion();
   var target=(camDir?camDir.clone():new THREE.Vector3(0,0.55,1)).normalize();
@@ -302,7 +304,7 @@ export function dieTopQuaternion(group, value, camDir){
 export var DICE_ALL_TYPES=[2,3,4,6,8,10,12,20,24,30,48,60,100,120];
 
 // Géométrie par type (retourne une THREE.BufferGeometry ou null pour cube/coin)
-export function dieGeometryFor(type){
+export function dieGeometryFor(type: number): THREE.BufferGeometry | null {
   switch(type){
     case 2:   return new THREE.CylinderGeometry(1.15,1.15,0.34,44); // pièce
     case 3:   return _prismGeo();
@@ -321,14 +323,14 @@ export function dieGeometryFor(type){
     default:  return new THREE.IcosahedronGeometry(1.3);
   }
 }
-export function _prismGeo(){
-  var pts=[],r=1.15,h=1.35;
+export function _prismGeo(): ConvexGeometry {
+  var pts: THREE.Vector3[]=[],r=1.15,h=1.35;
   for(var s=-1;s<=1;s+=2)for(var k=0;k<3;k++){
     var a=k*2*Math.PI/3+Math.PI/2; pts.push(new THREE.Vector3(r*Math.cos(a),s*h/2,r*Math.sin(a)));}
   return new ConvexGeometry(pts);
 }
-export function _trapezoGeo(){
-  var pts=[],rTop=1.0,zOff=0.30,apex=1.2;
+export function _trapezoGeo(): ConvexGeometry {
+  var pts: THREE.Vector3[]=[],rTop=1.0,zOff=0.30,apex=1.2;
   pts.push(new THREE.Vector3(0,apex,0)); pts.push(new THREE.Vector3(0,-apex,0));
   for(var k=0;k<5;k++){var a1=k*2*Math.PI/5,a2=a1+Math.PI/5;
     pts.push(new THREE.Vector3(rTop*Math.cos(a1),zOff,rTop*Math.sin(a1)));
@@ -336,7 +338,7 @@ export function _trapezoGeo(){
   return new ConvexGeometry(pts);
 }
 // taille de chiffre par type (faces plus petites => chiffre plus petit)
-export function _digitSize(type){
+export function _digitSize(type: number): number {
   if(type<=4)return 0.72; if(type<=8)return 0.54; if(type<=12)return 0.48;
   if(type<=20)return 0.44; if(type<=30)return 0.38; if(type<=48)return 0.34;
   if(type<=60)return 0.31; return 0.27; // d120 relevé 0.22 -> 0.27 (lisibilité)
@@ -344,7 +346,7 @@ export function _digitSize(type){
 
 // Met à l'échelle une géométrie pour que son rayon englobant = targetR.
 // -> tous les solides occupent la même taille à l'écran.
-export function _normalizeGeoRadius(geo, targetR){
+export function _normalizeGeoRadius(geo: THREE.BufferGeometry, targetR: number): THREE.BufferGeometry {
   geo.computeBoundingSphere();
   var r=(geo.boundingSphere && geo.boundingSphere.radius)||1;
   if(r>1e-4){ geo.scale(targetR/r, targetR/r, targetR/r); }
@@ -353,25 +355,25 @@ export function _normalizeGeoRadius(geo, targetR){
 export var DICE_TARGET_R=1.42; // rayon englobant commun (marge anti-coupe)
 export var CHAMFER_T=0.08; // fraction d'arête rabotée à chaque sommet (pointes adoucies)
 // Encre lisible : renvoie une couleur foncée sur fond clair, claire sur fond foncé.
-export function _contrastInk(hex){
+export function _contrastInk(hex: number): number {
   var r=(hex>>16)&255, g=(hex>>8)&255, b=hex&255;
   var lum=(0.2126*r + 0.7152*g + 0.0722*b)/255; // luminance perçue
   return (lum>0.58) ? 0x15181c : 0xffffff;
 }
-export function _hexLum(hex){ var r=(hex>>16)&255,g=(hex>>8)&255,b=hex&255; return (0.2126*r+0.7152*g+0.0722*b)/255; }
+export function _hexLum(hex: number): number { var r=(hex>>16)&255,g=(hex>>8)&255,b=hex&255; return (0.2126*r+0.7152*g+0.0722*b)/255; }
 // plafonne la luminance (évite le blanc pur : garde une marge pour l'ombrage des facettes)
-export function _capLum(hex,maxL){ var l=_hexLum(hex); if(l<=maxL||l<=0) return hex; return _mixHex(hex,0x000000,1-(maxL/l)); }
-export function _mixHex(hex,toHex,t){
+export function _capLum(hex: number, maxL: number): number { var l=_hexLum(hex); if(l<=maxL||l<=0) return hex; return _mixHex(hex,0x000000,1-(maxL/l)); }
+export function _mixHex(hex: number, toHex: number, t: number): number {
   var r=(hex>>16)&255,g=(hex>>8)&255,b=hex&255;
   var R=(toHex>>16)&255,G=(toHex>>8)&255,B=toHex&255;
-  var m=function(a,c){return Math.round(a+(c-a)*t);};
+  var m=function(a: number, c: number){return Math.round(a+(c-a)*t);};
   return (m(r,R)<<16)|(m(g,G)<<8)|m(b,B);
 }
 // Couleur de corps du dé, adaptée jour/nuit :
 // - thème CLAIR : accent pâli (jamais blanc pur) -> boule claire, chiffres foncés.
 // - thème SOMBRE : accent normalisé en luminance moyenne -> boule colorée, chiffres clairs.
 // teinte/saturation d'une couleur 0xRRGGBB (h en degrés 0-360, s en 0-1)
-export function _hexHS(hex){
+export function _hexHS(hex: number): { h: number; s: number } {
   var r=((hex>>16)&255)/255, g=((hex>>8)&255)/255, b=(hex&255)/255;
   var mx=Math.max(r,g,b), mn=Math.min(r,g,b), d=mx-mn, hDeg=0;
   if(d>0){
@@ -385,7 +387,7 @@ export function _hexHS(hex){
   return {h:hDeg, s:s};
 }
 // fond calculé de la carte joueur color-n POUR LE THÈME ACTIF (couleur unie, sans texture)
-export function _cardBgHex(n){
+export function _cardBgHex(n: number): number | null {
   try{
     var probe=document.createElement('div');
     probe.className='pcard color-'+n;
@@ -398,18 +400,18 @@ export function _cardBgHex(n){
   }catch(e){}
   return null;
 }
-export function _diceBodyColor(){
+export function _diceBodyColor(): number {
   // Corps du dé = fond de carte joueur le plus en phase avec le thème (teinte proche
   // de l'accent ; carte la moins colorée si accent quasi gris), couleur unie sans
   // texture, puis NORMALISÉ dans une plage moyenne-sombre FIXE [0.16, 0.30] :
   // base prévisible sur tous les thèmes, relief garanti, jamais de dé blanc.
   var accent=_themeColorHex('--accent',0x9965A9);
   var ahs=_hexHS(accent);
-  var best=null, bestScore=Infinity;
+  var best: number | null=null, bestScore=Infinity;
   for(var n=1;n<=10;n++){
     var c=_cardBgHex(n);
     if(c===null) continue;
-    var hs=_hexHS(c), sc;
+    var hs=_hexHS(c), sc: number;
     if(ahs.s<0.15){ sc=hs.s; }                       // thème neutre -> carte la moins colorée
     else{
       var dh=Math.abs(hs.h-ahs.h); if(dh>180) dh=360-dh;
@@ -425,7 +427,7 @@ export function _diceBodyColor(){
 }
 // Chiffres du dé = même ton que les chiffres des cartes (.score). On lit la couleur
 // CALCULÉE d'un élément .score (respecte les surcharges par thème), fallback --accent.
-export function _diceNumColor(){
+export function _diceNumColor(): number {
   // Encre IVOIRE légèrement teintée par l'accent du thème (règle des fabricants de
   // dés : corps coloré + encre quasi-blanche). Sur corps normalisé [0.16, 0.30],
   // contraste massif et constant (>= 0.55 de luminance), net sans contour.
@@ -434,7 +436,7 @@ export function _diceNumColor(){
 }
 // Encre des dés (chiffres, arêtes, halo) : contraste de LUMINANCE garanti avec le
 // corps -> lisible aussi pour les daltoniens (jamais un contraste de teinte seule).
-export function _diceInk(bodyHex){ return _contrastInk(bodyHex); }
+export function _diceInk(bodyHex: number): number { return _contrastInk(bodyHex); }
 // Corps ARRONDI d'un solide convexe (aspect résine des vrais dés) : chaque face reste
 // plane mais rétrécie de r ; chaque arête devient un quart de cylindre de rayon r et
 // chaque sommet une calotte sphérique. Les normales sont lissées sur les arrondis et
@@ -443,17 +445,17 @@ export function _diceInk(bodyHex){ return _contrastInk(bodyHex); }
 // sommet v ; tous les points de la surface s'écrivent c_v + r * direction.
 export var ROUND_R=0.18;    // rayon d'arrondi des arêtes et pointes (unités scène ; dé de rayon 1.42) : pointes en vraie courbe
 export var ROUND_SEGS=4;    // segments par quart de cylindre
-export function _roundedBody(geo, r, segs){
+export function _roundedBody(geo: THREE.BufferGeometry, r: number, segs?: number): THREE.BufferGeometry {
   segs=segs||ROUND_SEGS;
   var faces=dieExtractFaces(geo);
-  var key=function(v){return v.x.toFixed(4)+'|'+v.y.toFixed(4)+'|'+v.z.toFixed(4);};
+  var key=function(v: THREE.Vector3): string {return v.x.toFixed(4)+'|'+v.y.toFixed(4)+'|'+v.z.toFixed(4);};
   // sommets uniques + faces incidentes ; arêtes -> 2 faces
-  var verts={}, edges={};
+  var verts: Record<string, RoundVert>={}, edges: Record<string, RoundEdge>={};
   faces.forEach(function(f,fi){
     f.d=f.normal.dot(f.center);
-    var P=f.poly;
+    var P=f.poly!; // toujours posé par dieExtractFaces
     P.forEach(function(v,i){
-      var k=key(v); if(!verts[k]) verts[k]={p:v.clone(), faces:[]}; verts[k].faces.push(fi);
+      var k=key(v); if(!verts[k]) verts[k]={p:v.clone(), faces:[] as number[]} as RoundVert; verts[k].faces.push(fi); // c (centre de coin) calculé juste après
       var w=P[(i+1)%P.length], kw=key(w), ek=(k<kw)?k+'##'+kw:kw+'##'+k;
       if(!edges[ek]) edges[ek]={a:k,b:kw,faces:[]}; edges[ek].faces.push(fi);
     });
@@ -462,7 +464,7 @@ export function _roundedBody(geo, r, segs){
   Object.keys(verts).forEach(function(k){
     var V=verts[k], M=new THREE.Matrix3(), me=[0,0,0,0,0,0,0,0,0], b=new THREE.Vector3();
     V.faces.forEach(function(fi){
-      var n=faces[fi].normal, t=faces[fi].d-r;
+      var n=faces[fi].normal, t=faces[fi].d!-r; // d posé sur toutes les faces ci-dessus
       me[0]+=n.x*n.x; me[1]+=n.x*n.y; me[2]+=n.x*n.z;
       me[3]+=n.y*n.x; me[4]+=n.y*n.y; me[5]+=n.y*n.z;
       me[6]+=n.z*n.x; me[7]+=n.z*n.y; me[8]+=n.z*n.z;
@@ -473,10 +475,10 @@ export function _roundedBody(geo, r, segs){
     if(Math.abs(det)<1e-9){ V.c=V.p.clone().multiplyScalar(1-r/Math.max(1e-3,V.p.length())); }
     else { V.c=b.clone().applyMatrix3(M.clone().invert()); }
   });
-  var pts=[], nrm={};
-  function add(p,n){ pts.push(p); nrm[key(p)]=n.clone(); }
+  var pts: THREE.Vector3[]=[], nrm: Record<string, THREE.Vector3>={};
+  function add(p: THREE.Vector3, n: THREE.Vector3){ pts.push(p); nrm[key(p)]=n.clone(); }
   // 1) coins des faces planes rétrécies
-  faces.forEach(function(f){ f.poly.forEach(function(v){ var V=verts[key(v)]; add(V.c.clone().addScaledVector(f.normal,r), f.normal); }); });
+  faces.forEach(function(f){ f.poly!.forEach(function(v){ var V=verts[key(v)]; add(V.c.clone().addScaledVector(f.normal,r), f.normal); }); });
   // 2) arêtes : arc de nA vers nB
   Object.keys(edges).forEach(function(ek){
     var E=edges[ek]; if(E.faces.length<2) return;
@@ -497,12 +499,12 @@ export function _roundedBody(geo, r, segs){
     });
   });
   var hull=new ConvexGeometry(pts);
-  var hp=hull.attributes.position, pos=[], nor=[];
+  var hp=hull.attributes.position as THREE.BufferAttribute, pos: number[]=[], nor: number[]=[];
   var a=new THREE.Vector3(), b2=new THREE.Vector3(), c=new THREE.Vector3(), tn=new THREE.Vector3();
   for(var i=0;i<hp.count;i+=3){
     a.fromBufferAttribute(hp,i); b2.fromBufferAttribute(hp,i+1); c.fromBufferAttribute(hp,i+2);
     tn.crossVectors(b2.clone().sub(a), c.clone().sub(a)).normalize();
-    var flat=null;
+    var flat: THREE.Vector3 | null=null;
     for(var fi=0;fi<faces.length;fi++){ if(faces[fi].normal.dot(tn)>0.9995){ flat=faces[fi].normal; break; } }
     [a,b2,c].forEach(function(v){
       pos.push(v.x,v.y,v.z);
@@ -512,49 +514,49 @@ export function _roundedBody(geo, r, segs){
   var out=new THREE.BufferGeometry();
   out.setAttribute('position', new THREE.Float32BufferAttribute(pos,3));
   out.setAttribute('normal', new THREE.Float32BufferAttribute(nor,3));
-  out.userData.flatShade=false; // normales explicites : faces plates, arrondis lissés
-  out.userData.roundR=r;        // pour dimensionner les chiffres sur la partie PLANE des faces
+  (out.userData as BodyGeoUserData).flatShade=false; // normales explicites : faces plates, arrondis lissés
+  (out.userData as BodyGeoUserData).roundR=r;        // pour dimensionner les chiffres sur la partie PLANE des faces
   return out;
 }
 // Rayon d'arrondi adapté au dé : plafonné à une fraction du plus petit rayon inscrit
 // (les chiffres doivent rester sur la partie plane des faces).
-export function _roundRadiusFor(geo){
+export function _roundRadiusFor(geo: THREE.BufferGeometry): number {
   var faces=dieExtractFaces(geo), m=Infinity;
   faces.forEach(function(f){ if(f.inradius<m) m=f.inradius; });
   return Math.min(ROUND_R, (isFinite(m)?m:0.3)*0.30);
 }
 // Corps du dé : arrondi si possible, chanfrein en repli.
-export function _dieBody(geo, rOverride){
+export function _dieBody(geo: THREE.BufferGeometry, rOverride?: number): THREE.BufferGeometry {
   try { return _roundedBody(geo, rOverride||_roundRadiusFor(geo)); }
   catch(e){ return _chamferSolid(geo, CHAMFER_T); }
 }
 // Tronque légèrement chaque sommet d'un solide convexe : on remplace la pointe par
 // une petite facette. Les faces d'origine restent planes, les arêtes restent nettes.
-export function _chamferSolid(geo, t){
+export function _chamferSolid(geo: THREE.BufferGeometry, t: number): THREE.BufferGeometry {
   var g=(geo.index!==null)?geo.toNonIndexed():geo;
-  var pos=g.attributes.position;
-  var key=function(v){return v.x.toFixed(4)+'|'+v.y.toFixed(4)+'|'+v.z.toFixed(4);};
-  var edges=new Map();
+  var pos=g.attributes.position as THREE.BufferAttribute;
+  var key=function(v: THREE.Vector3): string {return v.x.toFixed(4)+'|'+v.y.toFixed(4)+'|'+v.z.toFixed(4);};
+  var edges=new Map<string, [THREE.Vector3, THREE.Vector3]>();
   var va=new THREE.Vector3(),vb=new THREE.Vector3(),vc=new THREE.Vector3();
-  function addEdge(p,q){var ka=key(p),kb=key(q);var ek=ka<kb?ka+'##'+kb:kb+'##'+ka;
+  function addEdge(p: THREE.Vector3, q: THREE.Vector3){var ka=key(p),kb=key(q);var ek=ka<kb?ka+'##'+kb:kb+'##'+ka;
     if(!edges.has(ek))edges.set(ek,[p.clone(),q.clone()]);}
   for(var i=0;i<pos.count;i+=3){
     va.fromBufferAttribute(pos,i);vb.fromBufferAttribute(pos,i+1);vc.fromBufferAttribute(pos,i+2);
     addEdge(va,vb);addEdge(vb,vc);addEdge(vc,va);
   }
   // points le long de chaque arête, près de chaque extrémité -> coupe les sommets
-  var pts=[];
+  var pts: THREE.Vector3[]=[];
   edges.forEach(function(pair){var a=pair[0],b=pair[1];
     pts.push(a.clone().lerp(b,t)); pts.push(b.clone().lerp(a,t));});
-  var out;
+  var out: ConvexGeometry;
   try { out=new ConvexGeometry(pts); }
   catch(e){ return geo; } // repli défensif : garde la géo nette si le hull échoue
-  out.userData.flatShade=true; // arêtes nettes : facettes crisp
+  (out.userData as BodyGeoUserData).flatShade=true; // arêtes nettes : facettes crisp
   return out;
 }
 // Cache de textures-chiffres (par valeur+couleur) : évite de régénérer 120 canvases.
-export var _numTexCache={};
-export function _numTex(value,colorHex,dense){
+export var _numTexCache: Record<string, THREE.CanvasTexture>={};
+export function _numTex(value: string | number, colorHex: number, dense?: boolean): THREE.CanvasTexture {
   var key=value+'_'+colorHex+(dense?'_d':'');
   if(!_numTexCache[key]) _numTexCache[key]=dieNumTexture(value,colorHex,dense);
   return _numTexCache[key];
@@ -562,20 +564,20 @@ export function _numTex(value,colorHex,dense){
 // d4 "vrai" : les chiffres sont écrits près des SOMMETS (3 par face) ; la valeur lue
 // est celle du sommet pointé vers le haut. Vu de dessus-devant, on voit la pyramide
 // (3 faces) avec le résultat répété autour de la pointe, comme sur un d4 réel.
-export function _buildVertexTetra(bodyHex, numHex){
+export function _buildVertexTetra(bodyHex: number, numHex: number): DieGroup {
   var geo=new THREE.TetrahedronGeometry(1.4);
   _normalizeGeoRadius(geo, DICE_TARGET_R*1.12); // un tétraèdre paraît petit : rayon légèrement majoré
-  var group=new THREE.Group();
+  var group=new THREE.Group() as DieGroup;
   var bodyGeo=_dieBody(geo, D4_ROUND_R); // pointes bien arrondies (grandes faces : on peut se le permettre)
-  var mat=new THREE.MeshStandardMaterial({color:bodyHex,roughness:0.42,metalness:0.14,flatShading:(bodyGeo.userData.flatShade!==false)});
+  var mat=new THREE.MeshStandardMaterial({color:bodyHex,roughness:0.42,metalness:0.14,flatShading:((bodyGeo.userData as BodyGeoUserData).flatShade!==false)});
   group.add(new THREE.Mesh(bodyGeo,mat));
   var faces=dieExtractFaces(geo);
   // sommets uniques du tétraèdre
-  var verts=[], seen={};
+  var verts: THREE.Vector3[]=[], seen: Record<string, 1>={};
   faces.forEach(function(f){ f.verts.forEach(function(v){
     var k=v.x.toFixed(3)+'|'+v.y.toFixed(3)+'|'+v.z.toFixed(3);
     if(!seen[k]){ seen[k]=1; verts.push(v.clone()); } }); });
-  var plates={}, vFaces=[];
+  var plates: DiePlates={}, vFaces: DieFace[]=[];
   var ds=0.44;
   verts.forEach(function(v, vi){
     var value=vi+1;
@@ -587,7 +589,7 @@ export function _buildVertexTetra(bodyHex, numHex){
       var up=toV.clone().normalize();
       var right=new THREE.Vector3().crossVectors(up,f.normal).normalize();
       var pl=new THREE.Mesh(new THREE.PlaneGeometry(ds,ds),
-        new THREE.MeshBasicMaterial({map:_numTex(value,numHex),transparent:true,depthWrite:false,side:THREE.FrontSide}));
+        new THREE.MeshBasicMaterial({map:_numTex(value,numHex),transparent:true,depthWrite:false,side:THREE.FrontSide})) as PlateMesh;
       pl.position.copy(f.center).addScaledVector(toV,0.52).addScaledVector(f.normal,0.012);
       pl.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(right,up,f.normal));
       group.add(pl);
@@ -600,7 +602,7 @@ export function _buildVertexTetra(bodyHex, numHex){
     var upRef=fn.clone().addScaledVector(dir,-fn.dot(dir)).multiplyScalar(-1).normalize();
     // vue de trois-quarts : 0° = face pile devant, 60° = arête devant
     upRef.applyAxisAngle(dir, _D4_YAW*Math.PI/180);
-    vFaces.push({value:value, normal:dir, center:v.clone(), inradius:0.3, upRef:upRef});
+    vFaces.push({value:value, normal:dir, center:v.clone(), inradius:0.3, upRef:upRef} as DieFace); // face « sommet » : pas de polygone (verts)
   });
   var _haloHex=_diceInk(bodyHex);
   var halo=new THREE.Mesh(new THREE.RingGeometry(0.60,0.76,40),
@@ -616,17 +618,17 @@ export var D4_ROUND_R=0.18; // d4 : rayon d'arrondi des arêtes/pointes (plus fo
 export var _D4_YAW=30;   // d4 : rotation autour de la pointe (0 = face devant, 60 = arête devant) -> trois-quarts
 // Construit un dé complet selon le type. Renvoie {group, faces, N, type, special}
 // variant : 'tens' pour le dé des dizaines du d100 (faces 00,10,...,90)
-export function buildDieByType(type, bodyHex, numHex, variant){
+export function buildDieByType(type: number, bodyHex: number, numHex?: number, variant?: string): DieGroup {
   if(type===6){
     // cube arrondi à pips (réutilise _makeDie existant du fichier hôte)
-    var g=_makeDie(2, bodyHex, numHex||0xffffff);
+    var g=_makeDie(2, bodyHex, numHex||0xffffff) as DieGroup;
     // wrapper faces pour cohérence (6 faces, valeurs via _DIE_TARGET)
     g.userData.faces=null; g.userData.N=6; g.userData.type=6; g.userData.special='cube';
     return g;
   }
   if(type===3){
     // d3 = cube à pips dont les 6 faces valent 1,2,3,1,2,3 (perspective parfaite du d6)
-    var g3=_makeDie(2, bodyHex, numHex||0xffffff, [1,2,3,1,2,3]);
+    var g3=_makeDie(2, bodyHex, numHex||0xffffff, [1,2,3,1,2,3]) as DieGroup;
     g3.userData.faces=null; g3.userData.N=3; g3.userData.type=3; g3.userData.special='cube';
     return g3;
   }
@@ -636,7 +638,7 @@ export function buildDieByType(type, bodyHex, numHex, variant){
   if(type===4){
     return _buildVertexTetra(bodyHex, numHex||0xffffff);
   }
-  var geo=dieGeometryFor(type);
+  var geo=dieGeometryFor(type)!; // null seulement pour le d6, traité ci-dessus
   var N=(type===100)?10:type;
   // normalise la taille du solide (rayon englobant commun) AVANT extraction des faces
   var _r0=1; geo.computeBoundingSphere(); if(geo.boundingSphere) _r0=geo.boundingSphere.radius||1;
@@ -646,7 +648,7 @@ export function buildDieByType(type, bodyHex, numHex, variant){
   // léger des sommets, faces planes, arêtes nettes (rendu validé sur d8/d12/d20/d24/d30).
   var bodyOverride=_dieBody(geo);
   // libellés : d10 -> la face 10 s'écrit "0" ; dé des dizaines du d100 -> "10".."90","00"
-  var labels;
+  var labels: Record<number, string> | undefined;
   if(type===10||type===100){
     labels={};
     if(variant==='tens'){ for(var k=1;k<=9;k++) labels[k]=k+'0'; labels[10]='00'; }
@@ -655,20 +657,20 @@ export function buildDieByType(type, bodyHex, numHex, variant){
   var g=buildNumberedDie(geo,N,bodyHex,numHex||0xffffff,_digitSize(N===10?10:N)*_s,bodyOverride,undefined,labels);
   // d10 et d100 : numéroter 0..9 (10 -> 0), faces ET plaques (halo/agrandissement du 0)
   if(type===10||type===100){
-    g.userData.faces.forEach(function(f){ if(f.value===10)f.value=0; });
+    g.userData.faces!.forEach(function(f){ if(f.value===10)f.value=0; }); // faces : toujours posées par buildNumberedDie
     if(g.userData.plates && g.userData.plates[10]){ g.userData.plates[0]=g.userData.plates[10]; delete g.userData.plates[10]; }
   }
   g.userData.type=type;
   return g;
 }
-export function _buildCoin(bodyHex,numHex){
-  var group=new THREE.Group();
+export function _buildCoin(bodyHex: number, numHex?: number): DieGroup {
+  var group=new THREE.Group() as DieGroup;
   var geo=new THREE.CylinderGeometry(1.15,1.15,0.32,44);
   var _cc=new THREE.Color(bodyHex).multiplyScalar(0.72); // pièce plus foncée/contrastée
   var mat=new THREE.MeshStandardMaterial({color:_cc,roughness:0.4,metalness:0.32});
   group.add(new THREE.Mesh(geo,mat));
   var nh=(numHex||0xffffff);
-  [[1,new THREE.Vector3(0,1,0)],[2,new THREE.Vector3(0,-1,0)]].forEach(function(d){
+  ([[1,new THREE.Vector3(0,1,0)],[2,new THREE.Vector3(0,-1,0)]] as [number, THREE.Vector3][]).forEach(function(d){
     var pl=new THREE.Mesh(new THREE.PlaneGeometry(1.6,1.6),
       new THREE.MeshBasicMaterial({map:_dieFaceTexture(d[0],bodyHex,nh),transparent:true,depthWrite:false}));
     pl.position.copy(d[1]).multiplyScalar(0.17);
@@ -680,14 +682,14 @@ export function _buildCoin(bodyHex,numHex){
   });
   group.userData.faces=[
     {value:1,normal:new THREE.Vector3(0,1,0),center:new THREE.Vector3(0,0.17,0)},
-    {value:2,normal:new THREE.Vector3(0,-1,0),center:new THREE.Vector3(0,-0.17,0)}];
+    {value:2,normal:new THREE.Vector3(0,-1,0),center:new THREE.Vector3(0,-0.17,0)}] as DieFace[]; // faces synthétiques : pas de polygone ni d'inradius
   group.userData.N=2; group.userData.type=2; group.userData.special='coin';
   return group;
 }
 
 // Orientation d'arrêt (face caméra) — délègue à dieTopQuaternion pour les solides à faces,
 // et à _DIE_TARGET pour le cube d6.
-export function dieStopQuaternion(g, value, camDir){
+export function dieStopQuaternion(g: DieGroup, value: number, camDir?: THREE.Vector3 | null): THREE.Quaternion {
   if(g.userData.special==='cube'){
     var tbl=(g.userData.type===3)?_DIE_TARGET_D3:_DIE_TARGET;
     var t=tbl[value]||{x:0,y:0};
