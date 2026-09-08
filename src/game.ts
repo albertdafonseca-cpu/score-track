@@ -126,8 +126,8 @@ export let selectedPresetIdx = -1;
 export function applyPreset(idx){
   const p=GAME_PRESETS[idx];if(!p)return;
   selectedPresetIdx = idx;
-  document.querySelectorAll('.preset-card').forEach(c=>c.classList.remove('on'));
-  const cards=document.querySelectorAll('.preset-card');
+  $$<HTMLElement>('.preset-card').forEach(c=>c.classList.remove('on'));
+  const cards=$$<HTMLElement>('.preset-card');
   if(cards[idx])cards[idx].classList.add('on');
   selectPlayer(p.players);
   selectStartPreset(p.start);
@@ -142,7 +142,7 @@ export function applyPreset(idx){
 // Marque le preset card si les réglages actuels correspondent
 export function highlightMatchingPreset(){
   const currentVal=getObjectifVal();
-  document.querySelectorAll('.preset-card').forEach((card,idx)=>{
+  $$<HTMLElement>('.preset-card').forEach((card,idx)=>{
     const p=GAME_PRESETS[idx];if(!p)return;
     const match=p.players===numPlayers&&p.start===startPoints&&
       (p.objectifMode||'none')===objectifMode&&
@@ -157,11 +157,11 @@ export function applyTheme(id){
   selectedTheme=id;
   const colors={cyber:'#020d12',dark:'#0a0a0f','neon-pink':'#0d0010',arcade:'#0a0800',nature:'#051208',sunset:'#120508',ocean:'#020810',mono:'#080808','ldm-day':'#f5f0e8',ldm:'#0d0a12'};
   const c=colors[id]||'#020d12';
-  const m=document.getElementById('meta-theme-color');if(m)m.content=c;
+  const m=$opt<HTMLMetaElement>('meta-theme-color');if(m)m.content=c;
   // met à jour les couleurs des dés si le lanceur est ouvert (elles sont cuites dans
   // les matériaux 3D à la construction -> il faut reconstruire).
   try{
-    var ov=document.getElementById('dice-overlay');
+    var ov=$opt('dice-overlay');
     if(ov && !ov.classList.contains('hidden') && typeof diceRenderPreview==='function'){
       diceResetPreview();
     }
@@ -198,7 +198,7 @@ export function saveAsDefault(e){
   // Flash confirmation
   updateRestoreBtn();
   // Flash léger sur l'emoji save uniquement
-  const _sb=document.getElementById('btn-savedefault');
+  const _sb=$opt('btn-savedefault');
   if(_sb){const _em=_sb.querySelector('.btn-emoji');if(_em){const _eo=_em.innerHTML;_em.innerHTML='✓';setTimeout(()=>_em.innerHTML=_eo,1200);}}
 }
 
@@ -232,42 +232,42 @@ export function restoreGame(){
     singleWinner=s.singleWinner||false; lastLoser=s.lastLoser||false;
     if(s.lastGameConfig)lastGameConfig=s.lastGameConfig;
     undoStack=[];groupTimers={};
-    document.getElementById('restore-banner').classList.add('hidden');
-    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-    document.getElementById('game-screen').style.display='flex';if(typeof diceUpdateFab==='function')diceUpdateFab();
+    $('restore-banner').classList.add('hidden');
+    $$<HTMLElement>('.page').forEach(p=>p.classList.remove('active'));
+    $('game-screen').style.display='flex';if(typeof diceUpdateFab==='function')diceUpdateFab();
     renderGame();
   }catch(e){discardSave();}
 }
 export function discardSave(){
   localStorage.removeItem('scoretrack_save');
-  document.getElementById('restore-banner').classList.add('hidden');
+  $('restore-banner').classList.add('hidden');
 }
 
 // ── PAGES ─────────────────────────────────────────────────────────
-export function showPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById(id).classList.add('active');}
+export function showPage(id){$$<HTMLElement>('.page').forEach(p=>p.classList.remove('active'));$(id).classList.add('active');}
 export function showSetup(){showPage('setup-page');}
 export function showSettings(){renderThemeGrid();showPage('settings-page');}
 export let _themeOrigin='setup';
 export function showThemeFromSetup(){_themeOrigin='setup';renderThemeGrid();showPage('settings-page');}
-export function showThemeFromGame(){_themeOrigin='game';renderThemeGrid();document.getElementById('game-screen').style.display='none';if(typeof diceUpdateFab==='function')diceUpdateFab();showPage('settings-page');}
+export function showThemeFromGame(){_themeOrigin='game';renderThemeGrid();$('game-screen').style.display='none';if(typeof diceUpdateFab==='function')diceUpdateFab();showPage('settings-page');}
 export function backFromTheme(){
-  if(_themeOrigin==='game'){document.getElementById('game-screen').style.display='flex';if(typeof diceUpdateFab==='function')diceUpdateFab();showPage('game-screen');fixLateral();setTimeout(fitTexts,50);}
+  if(_themeOrigin==='game'){$('game-screen').style.display='flex';if(typeof diceUpdateFab==='function')diceUpdateFab();showPage('game-screen');fixLateral();setTimeout(fitTexts,50);}
   else showPage('setup-page');
 }
-export function showPrivacy(){_privacyOrigin=document.querySelector('.page.active')?.id||'settings-page';showPage('privacy-modal');}
+export function showPrivacy(){_privacyOrigin=$q('.page.active')?.id||'settings-page';showPage('privacy-modal');}
 export function acceptPrivacy(){
   localStorage.setItem('st_privacy_accepted','1');
-  document.getElementById('btn-privacy-accept').classList.add('hidden');
-  document.getElementById('privacy-back-btn').classList.remove('hidden');
-  document.getElementById('privacy-s5-section').classList.remove('hidden');
+  $('btn-privacy-accept').classList.add('hidden');
+  $('privacy-back-btn').classList.remove('hidden');
+  $('privacy-s5-section').classList.remove('hidden');
   closePrivacy();
 }
 export function checkFirstLaunch(){
   if(!localStorage.getItem('st_privacy_accepted')){
     _privacyOrigin='setup-page';
-    document.getElementById('privacy-back-btn').classList.add('hidden');
-    document.getElementById('btn-privacy-accept').classList.remove('hidden');
-    document.getElementById('privacy-s5-section').classList.add('hidden');
+    $('privacy-back-btn').classList.add('hidden');
+    $('btn-privacy-accept').classList.remove('hidden');
+    $('privacy-s5-section').classList.add('hidden');
     showPage('privacy-modal');
   }
 }
@@ -281,7 +281,7 @@ export function clearAllData(){
 
 // ── PRÉRÉGLAGES ───────────────────────────────────────────────────
 export function renderPresets(){
-  const g=document.getElementById('presets-grid');g.innerHTML='';
+  const g=$('presets-grid');g.innerHTML='';
   GAME_PRESETS.forEach((p,idx)=>{
     const c=document.createElement('div');
     c.className='preset-card'+(idx===selectedPresetIdx?' on':'');
@@ -293,14 +293,14 @@ export function renderPresets(){
 
 // ── THÈMES ────────────────────────────────────────────────────────
 export function renderThemeGrid(){
-  const g=document.getElementById('themes-grid');g.innerHTML='';
+  const g=$('themes-grid');g.innerHTML='';
   THEMES.forEach(th=>{
     const card=document.createElement('div');
     card.className='theme-card'+(selectedTheme===th.id?' selected':'');
     card.style.background=th.bg;
     card.innerHTML=`<div class="theme-check">✓</div><div class="theme-card-name" style="color:${th.a}">${t(th.nameKey)}</div><div class="theme-swatches"><div class="theme-swatch" style="background:${th.a};box-shadow:0 0 6px ${th.a}"></div><div class="theme-swatch" style="background:${th.b};box-shadow:0 0 6px ${th.b}"></div><div class="theme-swatch" style="background:${th.bg};border:1px solid ${th.a}44"></div></div>`;
     card.onclick=()=>{
-      document.querySelectorAll('.theme-card').forEach(c=>c.classList.remove('selected'));
+      $$<HTMLElement>('.theme-card').forEach(c=>c.classList.remove('selected'));
       card.classList.add('selected');selectedTheme=th.id;applyTheme(th.id);
       applyScreenMaterial(th.id);
       settings.theme=th.id;
@@ -315,7 +315,7 @@ export function renderThemeGrid(){
 // On lit les variables --mat/--mat-blend/--mat-op deja definies par [data-theme]
 // via un element temporaire, sans redeclarer les data-uri.
 export function applyScreenMaterial(themeId){
-  const screen=document.getElementById('theme-mat-screen');
+  const screen=$opt('theme-mat-screen');
   if(!screen) return;
   const probe=document.createElement('div');
   probe.setAttribute('data-theme', themeId==='cyber'?'':themeId);
@@ -337,21 +337,21 @@ export function applyScreenMaterial(themeId){
 
 
 // ── SETUP ─────────────────────────────────────────────────────────
-export function selectPlayer(n){numPlayers=n;document.querySelectorAll('#players-grid .player-chip').forEach(c=>{c.classList.toggle('on',parseInt(c.textContent)===n);});checkGoBtn();}
+export function selectPlayer(n){numPlayers=n;$$<HTMLElement>('#players-grid .player-chip').forEach(c=>{c.classList.toggle('on',parseInt(c.textContent)===n);});checkGoBtn();}
 export function selectStartPreset(v){
   startPoints=v;
   const known=[0,10,20,40,50,100];
-  const chip=document.querySelector(`#start-presets .points-chip[data-val="${v}"]`);
-  document.querySelectorAll('#start-presets .points-chip').forEach(c=>c.classList.remove('on'));
-  if(chip){chip.classList.add('on');document.getElementById('points-custom').value='';}
-  else{document.getElementById('points-custom').value=v>0?v:'';}
+  const chip=$q<HTMLElement>(`#start-presets .points-chip[data-val="${v}"]`);
+  $$<HTMLElement>('#start-presets .points-chip').forEach(c=>c.classList.remove('on'));
+  if(chip){chip.classList.add('on');$<HTMLInputElement>('points-custom').value='';}
+  else{$<HTMLInputElement>('points-custom').value=v>0?v:'';}
   checkGoBtn();
 }
 export function selectObjectifPreset(val){
-  document.querySelectorAll('#objectif-presets .points-chip').forEach(c=>{
+  $$<HTMLElement>('#objectif-presets .points-chip').forEach(c=>{
     c.classList.toggle('on', parseInt(c.dataset.oval)===val);
   });
-  document.getElementById('objectif-custom').value='';
+  $<HTMLInputElement>('objectif-custom').value='';
   checkGoBtn();
 }
 export function selectBloquer(mode){ bloquerMode=mode; } // UI supprimée
@@ -360,11 +360,11 @@ export function selectBloquer(mode){ bloquerMode=mode; } // UI supprimée
 export function selectObjectif(mode){
   objectifMode=mode;
   ['none','elim','win'].forEach(m=>{
-    document.getElementById('obj-'+m).classList.toggle('on',m===mode);
+    $('obj-'+m).classList.toggle('on',m===mode);
   });
-  const inp=document.getElementById('objectif-input');
-  const custom=document.getElementById('objectif-custom');
-  const chips=document.querySelectorAll('#objectif-presets .points-chip');
+  const inp=$('objectif-input');
+  const custom=$<HTMLInputElement>('objectif-custom');
+  const chips=$$<HTMLElement>('#objectif-presets .points-chip');
   if(mode==='none'){
     elimPoints=null;winPoints=null;maxPoints=Infinity;allowNeg=false;
     chips.forEach(c=>{c.classList.remove('on');c.style.pointerEvents='none';c.style.opacity='0.25';});
@@ -375,22 +375,22 @@ export function selectObjectif(mode){
     // Activer 0 par défaut seulement si aucun bouton n'est déjà actif
     const alreadyOn=[...chips].find(c=>c.classList.contains('on'));
     if(!alreadyOn&&!custom.value){
-      const chip0=document.querySelector('#objectif-presets .points-chip[data-oval="0"]');
+      const chip0=$q<HTMLElement>('#objectif-presets .points-chip[data-oval="0"]');
       if(chip0)chip0.classList.add('on');
       custom.value='';
     }
     custom.placeholder=t('placeholderOther');
   }
   checkGoBtn();
-  const wo=document.getElementById('win-options');
+  const wo=$opt('win-options');
   if(wo) wo.style.display=mode==='win'?'flex':'none';
   updateWinOptionsUI();
 }
 
 export function updateWinOptionsUI(){
-  const ts=document.getElementById('toggle-single-winner');
-  const tl=document.getElementById('toggle-last-loser');
-  const rl=document.getElementById('row-last-loser');
+  const ts=$opt('toggle-single-winner');
+  const tl=$opt('toggle-last-loser');
+  const rl=$opt('row-last-loser');
   if(!ts||!tl) return;
   ts.classList.toggle('on', singleWinner);
   tl.classList.toggle('on', lastLoser);
@@ -398,26 +398,26 @@ export function updateWinOptionsUI(){
 }
 
 export function toggleSingleWinner(){
-  selectedPresetIdx=-1;document.querySelectorAll('.preset-card').forEach(c=>c.classList.remove('on'));
+  selectedPresetIdx=-1;$$<HTMLElement>('.preset-card').forEach(c=>c.classList.remove('on'));
   singleWinner=!singleWinner;
   if(singleWinner) lastLoser=false; // incompatible
   updateWinOptionsUI();
 }
 
 export function toggleLastLoser(){
-  selectedPresetIdx=-1;document.querySelectorAll('.preset-card').forEach(c=>c.classList.remove('on'));
+  selectedPresetIdx=-1;$$<HTMLElement>('.preset-card').forEach(c=>c.classList.remove('on'));
   lastLoser=!lastLoser;
   if(lastLoser) singleWinner=false; // incompatible
   updateWinOptionsUI();
 }
 
 export function getObjectifVal(){
-  const custom=document.getElementById('objectif-custom');
+  const custom=$<HTMLInputElement>('objectif-custom');
   if(custom.value!==''){
     const v=parseInt(custom.value);
     return isNaN(v)?null:v;
   }
-  const activeChip=document.querySelector('#objectif-presets .points-chip.on');
+  const activeChip=$q<HTMLElement>('#objectif-presets .points-chip.on');
   if(activeChip)return parseInt(activeChip.dataset.oval);
   return null;
 }
@@ -438,22 +438,22 @@ export function applyObjectif(){
 export function setObjectifFromPreset(mode,val){
   objectifMode=mode;
   ['none','elim','win'].forEach(m=>{
-    document.getElementById('obj-'+m).classList.toggle('on',m===mode);
+    $('obj-'+m).classList.toggle('on',m===mode);
   });
   // Réinitialiser toutes les chips de valeur
-  document.querySelectorAll('#objectif-presets .points-chip').forEach(c=>c.classList.remove('on'));
+  $$<HTMLElement>('#objectif-presets .points-chip').forEach(c=>c.classList.remove('on'));
   // Toujours réactiver les chips et le champ
-  document.querySelectorAll('#objectif-presets .points-chip').forEach(c=>{
+  $$<HTMLElement>('#objectif-presets .points-chip').forEach(c=>{
     c.classList.remove('on');c.style.pointerEvents='';c.style.opacity='';
   });
-  const custom=document.getElementById('objectif-custom');
+  const custom=$<HTMLInputElement>('objectif-custom');
   custom.disabled=false;
   if(mode==='none'){
     custom.value='';custom.placeholder='Valeur…';
   } else {
     custom.placeholder=t('placeholderOther');
     if(val!==null&&val!==undefined){
-      const chip=document.querySelector(`#objectif-presets .points-chip[data-oval="${val}"]`);
+      const chip=$q<HTMLElement>(`#objectif-presets .points-chip[data-oval="${val}"]`);
       if(chip){
         chip.classList.add('on');
         custom.value=''; // chip active → champ vide
@@ -462,7 +462,7 @@ export function setObjectifFromPreset(mode,val){
       }
     }
   }
-  const wo=document.getElementById('win-options');
+  const wo=$opt('win-options');
   if(wo) wo.style.display=mode==='win'?'flex':'none';
   updateWinOptionsUI();
 }
@@ -471,7 +471,7 @@ export function setObjectifFromPreset(mode,val){
 export function checkGoBtn(){
   const objOk=objectifMode==='none'||getObjectifVal()!==null;
   const ok=numPlayers>=1&&startPoints>=0&&objOk;
-  const btn=document.getElementById('go-btn');
+  const btn=$<HTMLButtonElement>('go-btn');
   btn.disabled=!ok;
   if(ok){
     let label=`${t('btnNext')} (${numPlayers}j · ${fmtNum(startPoints)}pts`;
@@ -485,7 +485,7 @@ export function loadProfiles(){
   try{return JSON.parse(localStorage.getItem('scoretrack_profiles')||'[]');}catch(e){return[];}
 }
 export function saveProfiles(){
-  const inputs=document.querySelectorAll('.name-input');
+  const inputs=$$<HTMLInputElement>('.name-input');
   const names=Array.from(inputs).map(i=>i.value.trim()).filter(Boolean);
   if(!names.length)return;
   let profiles=loadProfiles();
@@ -497,7 +497,7 @@ export function saveProfiles(){
 }
 export function renderProfileChips(){
   const profiles=loadProfiles();
-  const list=document.getElementById('profiles-list');
+  const list=$('profiles-list');
   list.innerHTML='';
   if(!profiles.length){list.classList.add('hidden');return;}
   list.classList.remove('hidden');
@@ -510,7 +510,7 @@ export function renderProfileChips(){
 }
 export let _lastFocusedInput=null;
 export function fillName(name){
-  const inputs=[...document.querySelectorAll('.name-input')];
+  const inputs=[...$$<HTMLInputElement>('.name-input')];
   // Utiliser la dernière case explicitement cliquée/focalisée
   if(_lastFocusedInput&&inputs.includes(_lastFocusedInput)){
     _lastFocusedInput.value=name;
@@ -530,7 +530,7 @@ export function deleteProfile(name){
 // ── NAMES SCREEN ──────────────────────────────────────────────────
 export function showNamesScreen(){
   _lastFocusedInput=null;
-  const list=document.getElementById('names-list');list.innerHTML='';
+  const list=$('names-list');list.innerHTML='';
   const sw=window.innerWidth;
   let cardVisW;
   if(numPlayers<=2)      cardVisW=sw;
@@ -558,20 +558,20 @@ export function showNamesScreen(){
 }
 
 export function shufflePlayers(){
-  const inputs=[...document.querySelectorAll('.name-input')];
+  const inputs=[...$$<HTMLInputElement>('.name-input')];
   const vals=inputs.map(i=>i.value);
   for(let i=vals.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[vals[i],vals[j]]=[vals[j],vals[i]];}
   inputs.forEach((inp,i)=>inp.value=vals[i]);
 }
-export function clearNames(){document.querySelectorAll('.name-input').forEach(i=>i.value='');}
+export function clearNames(){$$<HTMLInputElement>('.name-input').forEach(i=>i.value='');}
 export function clearAll(){
   clearNames();
   clearSavedNames();
 }
 export function clearSavedNames(){
   localStorage.removeItem('scoretrack_profiles');
-  document.getElementById('profiles-list').innerHTML='';
-  document.getElementById('profiles-list').classList.add('hidden');
+  $('profiles-list').innerHTML='';
+  $('profiles-list').classList.add('hidden');
 }
 
 // ── DÉMARRAGE PARTIE ──────────────────────────────────────────────
@@ -582,11 +582,11 @@ export function startGame(){
   lastGameConfig={numPlayers,startPoints,objectifMode,objectifVal:getObjectifVal(),bloquerMode,allowNeg,singleWinner,lastLoser};
   settings.lastGameConfig=lastGameConfig;
   try{localStorage.setItem('scoretrack_settings',JSON.stringify(settings));}catch(e){}
-  const inputs=document.querySelectorAll('.name-input');
+  const inputs=$$<HTMLInputElement>('.name-input');
   players=Array.from({length:numPlayers},(_,i)=>({playerName:inputs[i]?.value.trim()||'',score:startPoints,eliminated:false}));
   seatOrder=players.map((_,i)=>i);undoStack=[];history=[];actionCounter=0;groupTimers={};elimPending=-1;rankCounter=0;
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.getElementById('game-screen').style.display='flex';if(typeof diceUpdateFab==='function')diceUpdateFab();
+  $$<HTMLElement>('.page').forEach(p=>p.classList.remove('active'));
+  $('game-screen').style.display='flex';if(typeof diceUpdateFab==='function')diceUpdateFab();
   
   renderGame();
   saveGame();
@@ -594,7 +594,7 @@ export function startGame(){
 
 // ── RENDER ────────────────────────────────────────────────────────
 export function renderGame(){
-  const wrap=document.getElementById('players-wrap');
+  const wrap=$('players-wrap');
   wrap.innerHTML='';
   wrap.style.visibility='hidden';
   const n=players.length;
@@ -732,9 +732,9 @@ export function renderGame(){
     fixLateral();
     let tries=0;
     function tryFit(){
-      const cards=wrap.querySelectorAll('.pcard');
+      const cards=$$<HTMLElement>('.pcard',wrap);
       const ready=[...cards].every(c=>{
-        const inner=c.querySelector('.card-inner');
+        const inner=$q<HTMLElement>('.card-inner',c);
         return inner&&inner.offsetWidth>0&&inner.offsetHeight>0;
       });
       if(ready){
@@ -824,19 +824,19 @@ export function buildCard(pi,rot){
   if(p.winner||p.eliminated){
     zone.style.pointerEvents='none';
     // Masquer le delta-flash
-    const df=zone.querySelector('.delta-flash');
+    const df=$q<HTMLElement>('.delta-flash',zone);
     if(df)df.style.display='none';
   }
 
   inner.appendChild(zone);
   if(p.winner&&!p.eliminated){
-    const scoreWrap=zone.querySelector('.score-wrap');
+    const scoreWrap=$q<HTMLElement>('.score-wrap',zone);
     if(scoreWrap)scoreWrap.style.display='none';
-    const sm=zone.querySelector('.tap-sign-minus');const sp=zone.querySelector('.tap-sign-plus');
+    const sm=$q<HTMLElement>('.tap-sign-minus',zone);const sp=$q<HTMLElement>('.tap-sign-plus',zone);
     if(sm)sm.style.display='none';if(sp)sp.style.display='none';
-    const dfW=zone.querySelector('.delta-flash');
+    const dfW=$q<HTMLElement>('.delta-flash',zone);
     if(dfW)dfW.style.display='none';
-    const ppW=zone.querySelector('.pplayer');
+    const ppW=$q<HTMLElement>('.pplayer',zone);
     if(ppW)ppW.style.display='none'; // masquer le prénom de la zone
     card.classList.add('win');
     const tag=document.createElement('div');tag.className='win-tag';
@@ -853,11 +853,11 @@ export function buildCard(pi,rot){
     tag.innerHTML=`<div class="win-icon">${winIcon}</div><div class="win-label">${winLabel}</div>${nameStr}${winRankStr}${scoreStr}`;
     inner.appendChild(tag);
   } else if(p.eliminated){
-    const scoreWrap=zone.querySelector('.score-wrap');
+    const scoreWrap=$q<HTMLElement>('.score-wrap',zone);
     if(scoreWrap)scoreWrap.style.display='none';
-    const sm=zone.querySelector('.tap-sign-minus');const sp=zone.querySelector('.tap-sign-plus');
+    const sm=$q<HTMLElement>('.tap-sign-minus',zone);const sp=$q<HTMLElement>('.tap-sign-plus',zone);
     if(sm)sm.style.display='none';if(sp)sp.style.display='none';
-    const ppE=zone.querySelector('.pplayer');
+    const ppE=$q<HTMLElement>('.pplayer',zone);
     if(ppE)ppE.style.display='none'; // masquer le prénom de la zone
     const tag=document.createElement('div');tag.className='elim-tag';
     const nameStr=p.playerName?`<div class="elim-name">${p.playerName}</div>`:'';
@@ -873,7 +873,7 @@ export function buildCard(pi,rot){
 export let _fitCache={};
 export function fitCard(card){
     const isLat=card.classList.contains('rot-l')||card.classList.contains('rot-r');
-    const inner=card.querySelector('.card-inner');
+    const inner=$q<HTMLElement>('.card-inner',card);
     let visH,visW;
     if(isLat&&inner&&inner.offsetWidth>0&&inner.offsetHeight>0){
       const r=inner.getBoundingClientRect();
@@ -883,17 +883,17 @@ export function fitCard(card){
       visH=r.height;visW=r.width;
     }
     if(!visH||!visW||visH<10||visW<10)return;
-    const cacheKey=`${visH}x${visW}x${card.querySelector('.score')?.textContent||''}`;
+    const cacheKey=`${visH}x${visW}x${$q<HTMLElement>('.score',card)?.textContent||''}`;
     if(_fitCache[card.id]===cacheKey)return;
     _fitCache[card.id]=cacheKey;
 
     const usH=visH*0.84,usW=visW*0.84;
-    const pl=card.querySelector('.pplayer');
-    const sc=card.querySelector('.score');
-    const df=card.querySelector('.delta-flash');
-    const sm=card.querySelector('.tap-sign-minus');
-    const sp=card.querySelector('.tap-sign-plus');
-    const ghost=card.querySelector('.pplayer-ghost');
+    const pl=$q<HTMLElement>('.pplayer',card);
+    const sc=$q<HTMLElement>('.score',card);
+    const df=$q<HTMLElement>('.delta-flash',card);
+    const sm=$q<HTMLElement>('.tap-sign-minus',card);
+    const sp=$q<HTMLElement>('.tap-sign-plus',card);
+    const ghost=$q<HTMLElement>('.pplayer-ghost',card);
 
     // Référence = plus petite dimension utile — cohérent avec tous les layouts
     const ref=Math.min(usH,usW);
@@ -948,13 +948,13 @@ export function fitCard(card){
     if(ghost)ghost.style.height=Math.max(8,nameSz)+'px';
 
     // Sizing des tags éliminé/vainqueur basé sur ref
-    const tag=card.querySelector('.elim-tag,.win-tag');
+    const tag=$q<HTMLElement>('.elim-tag,.win-tag',card);
     if(tag){
-      const iconEl=tag.querySelector('.elim-icon,.win-icon');
-      const labelEl=tag.querySelector('.elim-label,.win-label');
-      const nameEl=tag.querySelector('.elim-name');
-      const rankEl=tag.querySelector('.elim-rank,.win-rank');
-      const scoreEl=tag.querySelector('.tag-score');
+      const iconEl=$q<HTMLElement>('.elim-icon,.win-icon',tag);
+      const labelEl=$q<HTMLElement>('.elim-label,.win-label',tag);
+      const nameEl=$q<HTMLElement>('.elim-name',tag);
+      const rankEl=$q<HTMLElement>('.elim-rank,.win-rank',tag);
+      const scoreEl=$q<HTMLElement>('.tag-score',tag);
       const iconSz=Math.max(10,Math.min(ref*0.18,36));
       const labelSz=Math.max(8,Math.min(ref*0.1,18));
       const subSz=Math.max(7,Math.min(ref*0.075,13));
@@ -978,27 +978,27 @@ export function fitCard(card){
     }
 }
 export function fitTexts(){
-  document.querySelectorAll('.pcard').forEach(card=>fitCard(card));
+  $$<HTMLElement>('.pcard').forEach(card=>fitCard(card));
 }
 
 // ── FIX LATERAL ───────────────────────────────────────────────────
 export function fixLateral(){
   _fitCache={};
-  document.querySelectorAll('.rot-0 .card-inner,.rot-180 .card-inner').forEach(inner=>{
+  $$<HTMLElement>('.rot-0 .card-inner,.rot-180 .card-inner').forEach(inner=>{
     const pc=inner.parentElement;const w=pc.offsetWidth,h=pc.offsetHeight;
     if(!w||!h)return;inner.style.width=w+'px';inner.style.height=h+'px';
   });
-  document.querySelectorAll('.rot-l .card-inner,.rot-r .card-inner').forEach(inner=>{
+  $$<HTMLElement>('.rot-l .card-inner,.rot-r .card-inner').forEach(inner=>{
     const pc=inner.parentElement;const w=pc.offsetWidth,h=pc.offsetHeight;
     if(!w||!h)return;inner.style.width=h+'px';inner.style.height=w+'px';
   });
 }
 export function onResize(){
-  if(document.getElementById('game-screen').style.display==='flex'){
+  if($('game-screen').style.display==='flex'){
     fixLateral();setTimeout(fitTexts,50);
   }
   // Repositionner le modal s'il est ouvert
-  const overlay=document.getElementById('score-modal');
+  const overlay=$opt<ScoreModalEl>('score-modal');
   if(overlay&&!overlay.classList.contains('hidden')&&overlay._modalRot&&modalPlayerIdx>=0&&players[modalPlayerIdx]){
     setTimeout(()=>openScoreModal(modalPlayerIdx,overlay._modalRot),50);
   }
@@ -1006,7 +1006,7 @@ export function onResize(){
 window.addEventListener('resize',onResize);
 window.addEventListener('orientationchange',()=>setTimeout(onResize,300));
 document.addEventListener('visibilitychange',()=>{
-  if(!document.hidden && document.getElementById('game-screen').style.display==='flex'){
+  if(!document.hidden && $('game-screen').style.display==='flex'){
     fixLateral();setTimeout(fitTexts,50);
   }
 });
@@ -1063,7 +1063,7 @@ export function scoreClass(score){
 // ── UPDATE DISPLAY ────────────────────────────────────────────────
 export function updateDisplay(i,zone,delta){
   const p=players[i];
-  const sc=document.getElementById(`sc-${i}`);
+  const sc=$opt(`sc-${i}`);
   if(!sc)return;
   sc.textContent=fmtNum(p.score);
   sc.className='score '+scoreClass(p.score);
@@ -1097,10 +1097,10 @@ export function updateDisplay(i,zone,delta){
 
       if(singleWinner){
         const winnerName=p.playerName||(t('player')+' '+(i+1));
-        document.getElementById('endgame-modal-icon').textContent='🏆';
-        document.getElementById('endgame-modal-title').textContent=winnerName;
-        document.getElementById('endgame-modal-sub').textContent=(t('singleWinnerConfirm')||'Fin de partie — les autres joueurs sont perdants. Confirmer ?');
-        document.getElementById('endgame-modal').classList.remove('hidden');
+        $('endgame-modal-icon').textContent='🏆';
+        $('endgame-modal-title').textContent=winnerName;
+        $('endgame-modal-sub').textContent=(t('singleWinnerConfirm')||'Fin de partie — les autres joueurs sont perdants. Confirmer ?');
+        $('endgame-modal').classList.remove('hidden');
         window._pendingEndgame={type:'singleWinner', winnerIdx:i,
           _cancel:()=>{
             p.winner=false; p.winRank=undefined; p.finalScore=undefined;
@@ -1119,10 +1119,10 @@ export function updateDisplay(i,zone,delta){
         const loserIdx=players.indexOf(loser);
         const winnerName=p.playerName||(t('player')+' '+(i+1));
         const loserName=loser.playerName||(t('player')+' '+(loserIdx+1));
-        document.getElementById('endgame-modal-icon').textContent='🏁';
-        document.getElementById('endgame-modal-title').textContent=winnerName;
-        document.getElementById('endgame-modal-sub').textContent=loserName+' '+(t('lastLoserConfirm')||'sera désigné perdant. Confirmer ?');
-        document.getElementById('endgame-modal').classList.remove('hidden');
+        $('endgame-modal-icon').textContent='🏁';
+        $('endgame-modal-title').textContent=winnerName;
+        $('endgame-modal-sub').textContent=loserName+' '+(t('lastLoserConfirm')||'sera désigné perdant. Confirmer ?');
+        $('endgame-modal').classList.remove('hidden');
         window._pendingEndgame={type:'lastLoser', winnerIdx:i, loserIdx,
           _cancel:()=>{
             p.winner=false; p.winRank=undefined; p.finalScore=undefined;
@@ -1142,8 +1142,8 @@ export function updateDisplay(i,zone,delta){
         setTimeout(()=>{ renderGame(); saveGame(); },300);
         // Winner-modal à la fin de la dernière animation finisher
         window._afterFinAnim=function(){
-          document.getElementById('winner-name').textContent='';
-          document.getElementById('winner-sub').textContent='';
+          $('winner-name').textContent='';
+          $('winner-sub').textContent='';
           showWinnerModal(false);
           localStorage.removeItem('scoretrack_save');
           window._afterFinAnim=null;
@@ -1164,8 +1164,8 @@ export function updateDisplay(i,zone,delta){
       const alive=players.filter(pl=>!pl.eliminated&&!pl.winner);
       if(alive.length<=2){
         elimPending=i;
-        document.getElementById('elim-confirm-name').textContent=p.playerName||`${t('player')} ${i+1}`;
-        document.getElementById('elim-modal').classList.remove('hidden');
+        $('elim-confirm-name').textContent=p.playerName||`${t('player')} ${i+1}`;
+        $('elim-modal').classList.remove('hidden');
       } else {
         elimDirect(i);
       }
@@ -1195,8 +1195,8 @@ export function elimDirect(i){
       if(alive[0].finalScore===undefined) alive[0].finalScore=alive[0].rawScore!==undefined?alive[0].rawScore:alive[0].score;
       renderGame();
       window._afterWinAnim=function(){
-        document.getElementById('winner-name').textContent=t('winner');
-        document.getElementById('winner-sub').textContent=(alive[0].playerName||'')+(alive[0].playerName?' · ':'')+fmtNum(alive[0].finalScore)+' pts';
+        $('winner-name').textContent=t('winner');
+        $('winner-sub').textContent=(alive[0].playerName||'')+(alive[0].playerName?' · ':'')+fmtNum(alive[0].finalScore)+' pts';
         showWinnerModal(true);
         localStorage.removeItem('scoretrack_save');
         window._afterWinAnim=null;
@@ -1208,13 +1208,13 @@ export function elimDirect(i){
   setTimeout(()=>{ renderGame();saveGame(); },300);
 }
 export function confirmElim(){
-  document.getElementById('elim-modal').classList.add('hidden');
+  $('elim-modal').classList.add('hidden');
   if(elimPending<0)return;
   const i=elimPending;elimPending=-1;
   elimDirect(i);
 }
 export function cancelElim(){
-  document.getElementById('elim-modal').classList.add('hidden');
+  $('elim-modal').classList.add('hidden');
   if(elimPending<0)return;
   // Remettre le score à 1 (undo)
   undoLast();
@@ -1225,7 +1225,7 @@ export function cancelElim(){
 export function flashZone(z,cls){if(!z||!z.classList)return;z.classList.add(cls);setTimeout(()=>z.classList.remove(cls),200);}
 export function flashDelta(i,groupSum){
   if(players[i]&&(players[i].winner||players[i].eliminated))return;
-  const el=document.getElementById(`df-${i}`);if(!el)return;
+  const el=$opt(`df-${i}`);if(!el)return;
   const s=groupSum>0?'+':'';
   el.textContent=s+fmtNum(groupSum);
   // Gain = vert, perte = rouge
@@ -1260,14 +1260,14 @@ export function openScoreModal(pi, forceRot){
   const openGroup=history.find(h=>h.playerIdx===pi&&h.open);
   if(openGroup){openGroup.open=false;if(groupTimers[pi]){clearTimeout(groupTimers[pi]);delete groupTimers[pi];}}
   modalPlayerIdx=pi;modalValue='0';modalSign=bloquerMode==='max'?-1:1;
-  document.getElementById('score-modal-player').textContent=(p.playerName||`Joueur ${pi+1}`)+' — '+fmtNum(p.score);
+  $('score-modal-player').textContent=(p.playerName||`Joueur ${pi+1}`)+' — '+fmtNum(p.score);
   updateModalDisplay();
   setSign(modalSign);
   // Orienter : forcé par le swipe, ou rotation de la carte pour l'appui long
   const rot=forceRot||(p.rot||'rot-0');
-  const overlay=document.getElementById('score-modal');
-  const rotEl=document.getElementById('modal-content-rotatable');
-  const box=overlay.querySelector('.modal-box');
+  const overlay=$<ScoreModalEl>('score-modal');
+  const rotEl=$('modal-content-rotatable');
+  const box=$q<HTMLElement>('.modal-box',overlay);
   // Réinitialiser tout
   overlay.removeAttribute('style');
   overlay.classList.remove('rot-180');
@@ -1281,17 +1281,17 @@ export function openScoreModal(pi, forceRot){
   } else {
     if(box) box.style.borderRadius=`${Math.round(16*_p)}px ${Math.round(16*_p)}px 0 0`;
   }
-  const _scoreDisp = overlay.querySelector('.modal-score-display');
-  const _player    = overlay.querySelector('.modal-player');
-  const _title     = overlay.querySelector('.modal-title');
-  const _handle    = overlay.querySelector('.modal-handle');
+  const _scoreDisp = $q<HTMLElement>('.modal-score-display',overlay);
+  const _player    = $q<HTMLElement>('.modal-player',overlay);
+  const _title     = $q<HTMLElement>('.modal-title',overlay);
+  const _handle    = $q<HTMLElement>('.modal-handle',overlay);
   if(_scoreDisp){ _scoreDisp.style.fontSize=`${Math.round(44*_p)}px`; _scoreDisp.style.minHeight=`${Math.round(52*_p)}px`; }
   if(_player)    _player.style.fontSize=`${Math.round(22*_p)}px`;
   if(_title)     _title.style.fontSize=`${Math.round(14*_p)}px`;
   if(_handle)    _handle.style.padding=`${Math.round(4*_p)}px ${Math.round(40*_p)}px`;
-  overlay.querySelectorAll('.key-btn').forEach(k=>{ k.style.padding=`${Math.round(5*_p)}px ${Math.round(3*_p)}px`; k.style.fontSize=`${Math.round(24*_p)}px`; });
-  overlay.querySelectorAll('.sign-btn').forEach(b=>{ b.style.padding=`${Math.round(4*_p)}px`; b.style.fontSize=`${Math.round(16*_p)}px`; });
-  overlay.querySelectorAll('.modal-btn').forEach(b=>{ b.style.padding=`${Math.round(10*_p)}px`; b.style.fontSize=`${Math.round(14*_p)}px`; });
+  $$<HTMLElement>('.key-btn',overlay).forEach(k=>{ k.style.padding=`${Math.round(5*_p)}px ${Math.round(3*_p)}px`; k.style.fontSize=`${Math.round(24*_p)}px`; });
+  $$<HTMLElement>('.sign-btn',overlay).forEach(b=>{ b.style.padding=`${Math.round(4*_p)}px`; b.style.fontSize=`${Math.round(16*_p)}px`; });
+  $$<HTMLElement>('.modal-btn',overlay).forEach(b=>{ b.style.padding=`${Math.round(10*_p)}px`; b.style.fontSize=`${Math.round(14*_p)}px`; });
 
   if(rot==='rot-180'){
     overlay.classList.add('rot-180');
@@ -1301,30 +1301,30 @@ export function openScoreModal(pi, forceRot){
       const side=Math.min(window.innerWidth,window.innerHeight,320), p=side/390;
       if(box){box.style.width=side+'px';box.style.maxWidth=side+'px';box.style.maxHeight=side+'px';box.style.overflowY='auto';box.style.display='';box.style.flexDirection='';box.style.height='';box.style.transform='';box.style.transformOrigin='';box.style.position='';}
       rotEl.style.padding=`${Math.round(6*p)}px ${Math.round(12*p)}px ${Math.round(12*p)}px`;rotEl.style.display='';rotEl.style.flexDirection='';rotEl.style.flex='';rotEl.style.minHeight='';rotEl.style.overflow='';
-      const ttl=overlay.querySelector('.modal-title'),plr=overlay.querySelector('.modal-player'),scd=overlay.querySelector('.modal-score-display'),hdl=overlay.querySelector('.modal-handle'),sgr=overlay.querySelector('.modal-sign-row');
+      const ttl=$q<HTMLElement>('.modal-title',overlay),plr=$q<HTMLElement>('.modal-player',overlay),scd=$q<HTMLElement>('.modal-score-display',overlay),hdl=$q<HTMLElement>('.modal-handle',overlay),sgr=$q<HTMLElement>('.modal-sign-row',overlay);
       if(hdl){hdl.style.padding=`${Math.round(4*p)}px 40px`;hdl.style.marginBottom=`${Math.round(4*p)}px`;}
       if(ttl)ttl.style.marginBottom=`${Math.round(2*p)}px`;if(plr)plr.style.marginBottom=`${Math.round(4*p)}px`;
       if(scd){scd.style.fontSize=`${Math.round(44*p)}px`;scd.style.marginBottom=`${Math.round(6*p)}px`;scd.style.minHeight=`${Math.round(52*p)}px`;}
       if(sgr)sgr.style.marginBottom=`${Math.round(6*p)}px`;
-      overlay.querySelectorAll('.key-btn').forEach(k=>{k.style.padding=`${Math.round(5*p)}px ${Math.round(3*p)}px`;k.style.fontSize=`${Math.round(24*p)}px`;k.style.minHeight='';k.style.height='';});
-      overlay.querySelectorAll('.modal-btn').forEach(b=>{b.style.padding=`${Math.round(10*p)}px`;b.style.fontSize=`${Math.round(14*p)}px`;});
-      overlay.querySelectorAll('.sign-btn').forEach(b=>{b.style.padding=`${Math.round(4*p)}px`;b.style.fontSize=`${Math.round(16*p)}px`;});
-      const kp=overlay.querySelector('.modal-keypad');if(kp){kp.style.marginBottom='6px';kp.style.flex='';kp.style.height='';kp.style.minHeight='';kp.style.overflow='';kp.style.gridTemplateRows='';kp.style.gap='';}
+      $$<HTMLElement>('.key-btn',overlay).forEach(k=>{k.style.padding=`${Math.round(5*p)}px ${Math.round(3*p)}px`;k.style.fontSize=`${Math.round(24*p)}px`;k.style.minHeight='';k.style.height='';});
+      $$<HTMLElement>('.modal-btn',overlay).forEach(b=>{b.style.padding=`${Math.round(10*p)}px`;b.style.fontSize=`${Math.round(14*p)}px`;});
+      $$<HTMLElement>('.sign-btn',overlay).forEach(b=>{b.style.padding=`${Math.round(4*p)}px`;b.style.fontSize=`${Math.round(16*p)}px`;});
+      const kp=$q<HTMLElement>('.modal-keypad',overlay);if(kp){kp.style.marginBottom='6px';kp.style.flex='';kp.style.height='';kp.style.minHeight='';kp.style.overflow='';kp.style.gridTemplateRows='';kp.style.gap='';}
     }
   } else if(rot==='rot-0'){
     {
       const side=Math.min(window.innerWidth,window.innerHeight,320), p=side/390;
       if(box){box.style.width=side+'px';box.style.maxWidth=side+'px';box.style.maxHeight=side+'px';box.style.overflowY='auto';box.style.display='';box.style.flexDirection='';box.style.height='';box.style.transform='';box.style.transformOrigin='';box.style.position='';}
       rotEl.style.padding=`${Math.round(6*p)}px ${Math.round(12*p)}px ${Math.round(12*p)}px`;rotEl.style.display='';rotEl.style.flexDirection='';rotEl.style.flex='';rotEl.style.minHeight='';rotEl.style.overflow='';
-      const ttl=overlay.querySelector('.modal-title'),plr=overlay.querySelector('.modal-player'),scd=overlay.querySelector('.modal-score-display'),hdl=overlay.querySelector('.modal-handle'),sgr=overlay.querySelector('.modal-sign-row');
+      const ttl=$q<HTMLElement>('.modal-title',overlay),plr=$q<HTMLElement>('.modal-player',overlay),scd=$q<HTMLElement>('.modal-score-display',overlay),hdl=$q<HTMLElement>('.modal-handle',overlay),sgr=$q<HTMLElement>('.modal-sign-row',overlay);
       if(hdl){hdl.style.padding=`${Math.round(4*p)}px 40px`;hdl.style.marginBottom=`${Math.round(4*p)}px`;}
       if(ttl)ttl.style.marginBottom=`${Math.round(2*p)}px`;if(plr)plr.style.marginBottom=`${Math.round(4*p)}px`;
       if(scd){scd.style.fontSize=`${Math.round(44*p)}px`;scd.style.marginBottom=`${Math.round(6*p)}px`;scd.style.minHeight=`${Math.round(52*p)}px`;}
       if(sgr)sgr.style.marginBottom=`${Math.round(6*p)}px`;
-      overlay.querySelectorAll('.key-btn').forEach(k=>{k.style.padding=`${Math.round(5*p)}px ${Math.round(3*p)}px`;k.style.fontSize=`${Math.round(24*p)}px`;k.style.minHeight='';k.style.height='';});
-      overlay.querySelectorAll('.modal-btn').forEach(b=>{b.style.padding=`${Math.round(10*p)}px`;b.style.fontSize=`${Math.round(14*p)}px`;});
-      overlay.querySelectorAll('.sign-btn').forEach(b=>{b.style.padding=`${Math.round(4*p)}px`;b.style.fontSize=`${Math.round(16*p)}px`;});
-      const kp=overlay.querySelector('.modal-keypad');if(kp){kp.style.marginBottom='6px';kp.style.flex='';kp.style.height='';kp.style.minHeight='';kp.style.overflow='';kp.style.gridTemplateRows='';kp.style.gap='';}
+      $$<HTMLElement>('.key-btn',overlay).forEach(k=>{k.style.padding=`${Math.round(5*p)}px ${Math.round(3*p)}px`;k.style.fontSize=`${Math.round(24*p)}px`;k.style.minHeight='';k.style.height='';});
+      $$<HTMLElement>('.modal-btn',overlay).forEach(b=>{b.style.padding=`${Math.round(10*p)}px`;b.style.fontSize=`${Math.round(14*p)}px`;});
+      $$<HTMLElement>('.sign-btn',overlay).forEach(b=>{b.style.padding=`${Math.round(4*p)}px`;b.style.fontSize=`${Math.round(16*p)}px`;});
+      const kp=$q<HTMLElement>('.modal-keypad',overlay);if(kp){kp.style.marginBottom='6px';kp.style.flex='';kp.style.height='';kp.style.minHeight='';kp.style.overflow='';kp.style.gridTemplateRows='';kp.style.gap='';}
     }
   } else if(rot==='rot-l'||rot==='rot-r'){
     const vw=window.innerWidth,vh=window.innerHeight;
@@ -1387,32 +1387,32 @@ export function openScoreModal(pi, forceRot){
     rotEl.style.flex='';
     rotEl.style.minHeight='';
     rotEl.style.overflow='';
-    const title=overlay.querySelector('.modal-title');
-    const player=overlay.querySelector('.modal-player');
-    const scoreDisp=overlay.querySelector('.modal-score-display');
-    const handle=overlay.querySelector('.modal-handle');
-    const signRow=overlay.querySelector('.modal-sign-row');
+    const title=$q<HTMLElement>('.modal-title',overlay);
+    const player=$q<HTMLElement>('.modal-player',overlay);
+    const scoreDisp=$q<HTMLElement>('.modal-score-display',overlay);
+    const handle=$q<HTMLElement>('.modal-handle',overlay);
+    const signRow=$q<HTMLElement>('.modal-sign-row',overlay);
     
     if(handle){ handle.style.padding=`${Math.round(4*p)}px 40px`; handle.style.marginBottom=`${Math.round(4*p)}px`; }
     if(title){ title.style.marginBottom=`${Math.round(2*p)}px`; } if(player){ player.style.fontSize=`${Math.round(22*p)}px`; player.style.marginBottom=`${Math.round(4*p)}px`; }
     if(scoreDisp){ scoreDisp.style.fontSize=`${Math.round(44*p)}px`; scoreDisp.style.marginBottom=`${Math.round(6*p)}px`; scoreDisp.style.minHeight=`${Math.round(52*p)}px`; }
     if(signRow){ signRow.style.marginBottom=`${Math.round(6*p)}px`; }
-    overlay.querySelectorAll('.key-btn').forEach(k=>{ k.style.padding=`${Math.round(5*p)}px ${Math.round(3*p)}px`; k.style.fontSize=`${Math.round(24*p)}px`; k.style.minHeight=''; k.style.height=''; });
-    overlay.querySelectorAll('.modal-btn').forEach(b=>{ b.style.padding=`${Math.round(10*p)}px`; b.style.fontSize=`${Math.round(14*p)}px`; });
-    overlay.querySelectorAll('.sign-btn').forEach(b=>{ b.style.padding=`${Math.round(4*p)}px`; b.style.fontSize=`${Math.round(16*p)}px`; });
-    const keypad=overlay.querySelector('.modal-keypad');
+    $$<HTMLElement>('.key-btn',overlay).forEach(k=>{ k.style.padding=`${Math.round(5*p)}px ${Math.round(3*p)}px`; k.style.fontSize=`${Math.round(24*p)}px`; k.style.minHeight=''; k.style.height=''; });
+    $$<HTMLElement>('.modal-btn',overlay).forEach(b=>{ b.style.padding=`${Math.round(10*p)}px`; b.style.fontSize=`${Math.round(14*p)}px`; });
+    $$<HTMLElement>('.sign-btn',overlay).forEach(b=>{ b.style.padding=`${Math.round(4*p)}px`; b.style.fontSize=`${Math.round(16*p)}px`; });
+    const keypad=$q<HTMLElement>('.modal-keypad',overlay);
     if(keypad){ keypad.style.marginBottom='6px'; keypad.style.flex=''; keypad.style.height=''; keypad.style.minHeight=''; keypad.style.overflow=''; keypad.style.gridTemplateRows=''; keypad.style.gap=''; }
   }
   // (rot top/bottom non utilisé)
   // Afficher backdrop et modal
-  const bd=document.getElementById('modal-backdrop');
+  const bd=$opt('modal-backdrop');
   if(bd){ bd.classList.remove('hidden'); bd.style.background='rgba(20,14,8,0.88)'; }
   overlay._modalRot = rot;
   overlay.classList.remove('hidden');
 }
 export function closeScoreModal(){
-  const overlay=document.getElementById('score-modal');
-  const backdrop=document.getElementById('modal-backdrop');
+  const overlay=$<ScoreModalEl>('score-modal');
+  const backdrop=$opt('modal-backdrop');
   overlay._dragging=false;
   window._modalJustClosed=true;
   setTimeout(()=>{ window._modalJustClosed=false; }, 350);
@@ -1421,26 +1421,26 @@ export function closeScoreModal(){
   // Reset complet pour la prochaine ouverture
   overlay.removeAttribute('style');
   overlay.classList.remove('rot-180');
-  const rotEl=document.getElementById('modal-content-rotatable');
+  const rotEl=$opt('modal-content-rotatable');
   if(rotEl)rotEl.removeAttribute('style');
-  const box=overlay.querySelector('.modal-box');
+  const box=$q<HTMLElement>('.modal-box',overlay);
   if(box)box.removeAttribute('style');
-  overlay.querySelectorAll('.key-btn,.modal-btn,.sign-btn').forEach(el=>el.removeAttribute('style'));
+  $$<HTMLElement>('.key-btn,.modal-btn,.sign-btn',overlay).forEach(el=>el.removeAttribute('style'));
   const els=['.modal-title','.modal-player','.modal-score-display','.modal-handle','.modal-sign-row','.modal-keypad','.modal-confirm-row'];
   els.forEach(sel=>{const el=overlay.querySelector(sel);if(el)el.removeAttribute('style');});
 }
 
 // ── Drag-to-close modal ─────────────────────────────────────────
 (function initModalDrag(){
-  const overlay = document.getElementById('score-modal');
-  const mBox    = overlay.querySelector('.modal-box');
-  const mHandle = overlay.querySelector('.modal-handle');
+  const overlay = $<ScoreModalEl>('score-modal');
+  const mBox    = $q<HTMLElement>('.modal-box',overlay);
+  const mHandle = $q<HTMLElement>('.modal-handle',overlay);
   if(!mBox || !mHandle) return;
 
   let _active=false, _sx=0, _sy=0, _lastD=0, _lastT=0, _vel=0;
   let _origTop='', _origLeft='';
 
-  const backdrop=document.getElementById('modal-backdrop');
+  const backdrop=$opt('modal-backdrop');
   if(backdrop){
     backdrop.addEventListener('touchstart',e=>{
       if(!overlay.classList.contains('hidden')){e.preventDefault();closeScoreModal();}
@@ -1466,7 +1466,7 @@ export function closeScoreModal(){
     const clamped=Math.max(0,d);
     const r=getRot();
     if(r==='rot-0'){
-      const box=overlay.querySelector('.modal-box');
+      const box=$q<HTMLElement>('.modal-box',overlay);
       if(box) box.style.transform=`translateY(${clamped}px)`;
     } else if(r==='rot-180')
       overlay.style.top=`calc(${_origTop} - ${clamped}px)`;
@@ -1481,7 +1481,7 @@ export function closeScoreModal(){
   function snapClose(){
     const r=getRot();
     if(r==='rot-0'){
-      const box=overlay.querySelector('.modal-box');
+      const box=$q<HTMLElement>('.modal-box',overlay);
       if(box){ box.style.transition='transform 0.2s cubic-bezier(0.4,0,1,1)'; box.style.transform='translateY(100vh)'; }
     } else {
       overlay.style.transition='top 0.2s cubic-bezier(0.4,0,1,1), left 0.2s cubic-bezier(0.4,0,1,1)';
@@ -1496,7 +1496,7 @@ export function closeScoreModal(){
   function snapOpen(){
     const r=getRot();
     if(r==='rot-0'){
-      const box=overlay.querySelector('.modal-box');
+      const box=$q<HTMLElement>('.modal-box',overlay);
       if(box){ box.style.animation='none'; box.style.transition='transform 0.25s cubic-bezier(0.32,0.72,0,1)'; box.style.transform=''; }
     } else {
       overlay.style.transition='top 0.25s cubic-bezier(0.32,0.72,0,1), left 0.25s cubic-bezier(0.32,0.72,0,1)';
@@ -1509,14 +1509,14 @@ export function closeScoreModal(){
   // Bloquer les clics sur boutons après un pinch-zoom
   let _wasPinch=false, _pinchBlockTimer=null;
 
-  overlay.querySelector('.modal-box').addEventListener('touchstart', e=>{
+  $q<HTMLElement>('.modal-box',overlay).addEventListener('touchstart', e=>{
     if(e.touches.length>=2){
       _wasPinch=true;
       clearTimeout(_pinchBlockTimer);
     }
   },{passive:true});
 
-  overlay.querySelector('.modal-box').addEventListener('touchend', e=>{
+  $q<HTMLElement>('.modal-box',overlay).addEventListener('touchend', e=>{
     if(_wasPinch){
       e.preventDefault();
       e.stopPropagation();
@@ -1524,7 +1524,7 @@ export function closeScoreModal(){
     }
   },{passive:false});
 
-  overlay.querySelector('.modal-box').addEventListener('click', e=>{
+  $q<HTMLElement>('.modal-box',overlay).addEventListener('click', e=>{
     if(_wasPinch){ e.stopPropagation(); e.preventDefault(); }
   },{capture:true});
 
@@ -1539,7 +1539,7 @@ export function closeScoreModal(){
     _origLeft = overlay.style.left || '0px';
     const r=getRot();
     if(r==='rot-0'){
-      const box=overlay.querySelector('.modal-box');
+      const box=$q<HTMLElement>('.modal-box',overlay);
       if(box){ box.style.transition='none'; box.style.animation='none'; }
     } else {
       overlay.style.transition='none';
@@ -1569,20 +1569,20 @@ export function closeScoreModal(){
   }
 
   // Zone de drag : tout le modal-box sauf keypad, sign-row et confirm-row
-  const _dragBox=overlay.querySelector('.modal-box');
+  const _dragBox=$q<HTMLElement>('.modal-box',overlay);
   if(_dragBox) _dragBox.addEventListener('touchstart', startDrag, {passive:true});
 
   overlay.addEventListener('touchend', e=>{
     if(_active) return;
-    const b=overlay.querySelector('.modal-box');
+    const b=$q<HTMLElement>('.modal-box',overlay);
     if(b && !b.contains(e.target)){ e.preventDefault(); closeScoreModal(); }
   },{passive:false});
 })();
 
 export function setSign(s){
   modalSign=s;
-  document.getElementById('sign-plus').classList.toggle('active',s===1);
-  document.getElementById('sign-minus').classList.toggle('active',s===-1);
+  $('sign-plus').classList.toggle('active',s===1);
+  $('sign-minus').classList.toggle('active',s===-1);
   updateModalDisplay();
   if(parseInt(modalValue)>0) confirmScoreModal();
 }
@@ -1595,7 +1595,7 @@ export function pressKey(k){
 }
 export function updateModalDisplay(){
   const v=parseInt(modalValue)||0;
-  const el=document.getElementById('score-modal-display');
+  const el=$('score-modal-display');
   el.textContent=(modalSign===1?'+':'-')+fmtNum(v);
   el.className='modal-score-display'+(modalSign===1?' pos':' neg');
 }
@@ -1624,7 +1624,7 @@ export function confirmScoreModal(){
 
 // ── UNDO ──────────────────────────────────────────────────────────
 (function setupUndo(){
-  const btn=document.getElementById('undo-btn');let iv=null,to=null;
+  const btn=$<HTMLButtonElement>('undo-btn');let iv=null,to=null;
   const start=e=>{e.preventDefault();undoLast();to=setTimeout(()=>{iv=setInterval(undoLast,120);},500);};
   const stop=()=>{clearTimeout(to);clearInterval(iv);to=null;iv=null;};
   btn.addEventListener('touchstart',start,{passive:false});btn.addEventListener('touchend',stop);btn.addEventListener('touchcancel',stop);
@@ -1634,17 +1634,17 @@ export function confirmScoreModal(){
 export function saveUndo(){
   undoStack.push(JSON.stringify({players,history,seatOrder,actionCounter}));
   if(undoStack.length>40)undoStack.shift();
-  document.getElementById('undo-btn').disabled=false;
+  $<HTMLButtonElement>('undo-btn').disabled=false;
 }
 export function undoLast(){
   if(!undoStack.length)return;
   // Fermer le modal winner s'il est ouvert
-  document.getElementById('winner-modal').classList.add('hidden');
-  document.getElementById('elim-modal').classList.add('hidden');
+  $('winner-modal').classList.add('hidden');
+  $('elim-modal').classList.add('hidden');
   elimPending=-1;
   const s=JSON.parse(undoStack.pop());
   players=s.players;history=s.history;seatOrder=s.seatOrder;actionCounter=s.actionCounter;
-  document.getElementById('undo-btn').disabled=undoStack.length===0;
+  $<HTMLButtonElement>('undo-btn').disabled=undoStack.length===0;
   _fitCache={};
   renderGame();saveGame();
 }
@@ -1657,14 +1657,14 @@ export function rotatePlayers(){
 
 // ── RÉCAP ─────────────────────────────────────────────────────────
 export function cancelEndgame(){
-  document.getElementById('endgame-modal').classList.add('hidden');
+  $('endgame-modal').classList.add('hidden');
   const eg=window._pendingEndgame;
   if(eg&&eg._cancel) eg._cancel();
   window._pendingEndgame=null;
   renderGame(); saveGame();
 }
 export function confirmEndgame(){
-  document.getElementById('endgame-modal').classList.add('hidden');
+  $('endgame-modal').classList.add('hidden');
   const eg=window._pendingEndgame; if(!eg) return;
   window._pendingEndgame=null;
 
@@ -1677,8 +1677,8 @@ export function confirmEndgame(){
     });
     renderGame(); saveGame();
     window._afterWinAnim=function(){
-      document.getElementById('winner-name').textContent=t('winner');
-      document.getElementById('winner-sub').textContent=(p.playerName||'')+(p.playerName?' · ':'')+fmtNum(p.finalScore||p.rawScore||p.score)+' pts';
+      $('winner-name').textContent=t('winner');
+      $('winner-sub').textContent=(p.playerName||'')+(p.playerName?' · ':'')+fmtNum(p.finalScore||p.rawScore||p.score)+' pts';
       showWinnerModal(true);
       localStorage.removeItem('scoretrack_save');
       window._afterWinAnim=null;
@@ -1699,10 +1699,10 @@ export function confirmEndgame(){
       playElimAnim(eg.loserIdx);
       window._afterElimAnim=function(){
         const loserName=loser.playerName||(t('player')+' '+(eg.loserIdx+1));
-        document.getElementById('winner-icon').textContent='💀';
-        document.getElementById('winner-name').textContent=loserName;
-        document.getElementById('winner-sub').textContent=fmtNum(loser.finalScore||loser.rawScore||loser.score)+' pts';
-        document.getElementById('winner-modal').classList.remove('hidden');
+        $('winner-icon').textContent='💀';
+        $('winner-name').textContent=loserName;
+        $('winner-sub').textContent=fmtNum(loser.finalScore||loser.rawScore||loser.score)+' pts';
+        $('winner-modal').classList.remove('hidden');
         localStorage.removeItem('scoretrack_save');
         window._afterElimAnim=null;
       };
@@ -1713,20 +1713,20 @@ export function confirmEndgame(){
 }
 
 export function showWinnerModal(isChampion){
-  document.getElementById('winner-icon').textContent=isChampion?'🏆':'🏁';
-  document.getElementById('winner-modal').classList.remove('hidden');
+  $('winner-icon').textContent=isChampion?'🏆':'🏁';
+  $('winner-modal').classList.remove('hidden');
 }
 export function showRecap(){
   history.forEach(h=>{h.open=false;});
   Object.values(groupTimers).forEach(clearTimeout);groupTimers={};
 
   // i18n panneau PDF
-  document.getElementById('pdf-panel-title').textContent='⬇ '+(t('pdfBtnDl')||'Export PDF');
-  document.getElementById('pdf-game-name').placeholder=t('pdfNamePlaceholder')||'Nom de la partie (optionnel)';
-  document.getElementById('pdf-lbl-scores').textContent=t('pdfLblScores')||'Scores finaux';
-  document.getElementById('pdf-lbl-history').textContent=t('pdfLblHistory')||'Historique des actions';
-  document.getElementById('pdf-lbl-info').textContent=t('pdfLblInfo')||'Infos partie (preset, date)';
-  document.getElementById('btn-pdf-dl').textContent='📄 '+(t('pdfBtnDl')||'Télécharger PDF');
+  $('pdf-panel-title').textContent='⬇ '+(t('pdfBtnDl')||'Export PDF');
+  $<HTMLInputElement>('pdf-game-name').placeholder=t('pdfNamePlaceholder')||'Nom de la partie (optionnel)';
+  $('pdf-lbl-scores').textContent=t('pdfLblScores')||'Scores finaux';
+  $('pdf-lbl-history').textContent=t('pdfLblHistory')||'Historique des actions';
+  $('pdf-lbl-info').textContent=t('pdfLblInfo')||'Infos partie (preset, date)';
+  $('btn-pdf-dl').textContent='📄 '+(t('pdfBtnDl')||'Télécharger PDF');
 
   let html='';
   players.forEach((p,pi)=>{
@@ -1758,9 +1758,9 @@ export function showRecap(){
     html+=`<div class="recap-total"><div class="recap-total-val">${fmtNum(displayScore)}</div></div></div>`;
   });
   if(!html)html=`<div style="color:var(--muted2);text-align:center;margin-top:48px;font-family:Share Tech Mono,monospace;font-size:14px;">${t('recapEmpty')}</div>`;
-  document.getElementById('recap-body').innerHTML=html;
-  document.getElementById('recap-close-btn').onclick=()=>document.getElementById('recap').classList.add('hidden');
-  document.getElementById('recap').classList.remove('hidden');
+  $('recap-body').innerHTML=html;
+  $('recap-close-btn').onclick=()=>$('recap').classList.add('hidden');
+  $('recap').classList.remove('hidden');
 }
 
 
@@ -1770,7 +1770,7 @@ export function startNewGameSameSetup(){
   const cfg = lastGameConfig || settings.lastGameConfig;
 
   ['reset-modal','winner-modal','recap','score-modal','elim-modal','endgame-modal']
-    .forEach(id => document.getElementById(id).classList.add('hidden'));
+    .forEach(id => $(id).classList.add('hidden'));
 
   localStorage.removeItem('scoretrack_save');
 
@@ -1798,7 +1798,7 @@ export function startNewGameSameSetup(){
   }));
   seatOrder = players.map((_, i) => i);
 
-  document.getElementById('game-screen').style.display = 'flex';if(typeof diceUpdateFab==='function')diceUpdateFab();
+  $('game-screen').style.display = 'flex';if(typeof diceUpdateFab==='function')diceUpdateFab();
   
   renderGame();
   saveGame();
@@ -1806,19 +1806,19 @@ export function startNewGameSameSetup(){
 
 // ── RESET ─────────────────────────────────────────────────────────
 export function confirmReset(){
-  ['reset-modal','winner-modal','recap','score-modal','elim-modal','endgame-modal'].forEach(id=>document.getElementById(id).classList.add('hidden'));
-  document.getElementById('game-screen').style.display='none';if(typeof diceUpdateFab==='function')diceUpdateFab();
+  ['reset-modal','winner-modal','recap','score-modal','elim-modal','endgame-modal'].forEach(id=>$(id).classList.add('hidden'));
+  $('game-screen').style.display='none';if(typeof diceUpdateFab==='function')diceUpdateFab();
   localStorage.removeItem('scoretrack_save');
   numPlayers=0;startPoints=0;maxPoints=Infinity;allowNeg=false;elimPending=-1;
   elimPoints=null;winPoints=null;objectifMode='none';
   bloquerMode='none';rankCounter=0;
   selectObjectif('none');
-  document.getElementById('objectif-custom').value='';
-  document.querySelectorAll('#players-grid .player-chip').forEach(c=>c.classList.remove('on'));
-  document.querySelectorAll('#start-presets .points-chip').forEach(c=>{c.classList.remove('on');c.classList.remove('disabled');});
-  document.getElementById('points-custom').value='';
-  document.querySelectorAll('.preset-card').forEach(c=>c.classList.remove('on'));
-  document.getElementById('go-btn').disabled=true;document.getElementById('go-btn').textContent=t('btnNext');
+  $<HTMLInputElement>('objectif-custom').value='';
+  $$<HTMLElement>('#players-grid .player-chip').forEach(c=>c.classList.remove('on'));
+  $$<HTMLElement>('#start-presets .points-chip').forEach(c=>{c.classList.remove('on');c.classList.remove('disabled');});
+  $<HTMLInputElement>('points-custom').value='';
+  $$<HTMLElement>('.preset-card').forEach(c=>c.classList.remove('on'));
+  $<HTMLButtonElement>('go-btn').disabled=true;$<HTMLButtonElement>('go-btn').textContent=t('btnNext');
   // Restaurer les réglages de la dernière partie, ou LDM par défaut
   if(settings.lastGameConfig){
     const c=settings.lastGameConfig;
@@ -1839,9 +1839,9 @@ export function confirmReset(){
 
 // ── BAR DRAWER ────────────────────────────────────────────────────
 (function initBarDrawer(){
-  const bar     = document.getElementById('bar');
-  const handle  = document.getElementById('bar-handle-zone');
-  const buttons = document.getElementById('bar-buttons');
+  const bar     = $('bar');
+  const handle  = $('bar-handle-zone');
+  const buttons = $('bar-buttons');
   let startY=0, dragging=false, startH=0;
   let _openH=0;
 
@@ -1859,7 +1859,7 @@ export function confirmReset(){
 
   function animateFit(){
     const t0 = performance.now();
-    const wrap = document.getElementById('players-wrap');
+    const wrap = $('players-wrap');
     function loop(now){
       void wrap.offsetHeight; fixLateral(); _fitCache={}; fitTexts();
       if(now - t0 < 350) requestAnimationFrame(loop);
@@ -1912,7 +1912,7 @@ export function confirmReset(){
     const h = Math.max(0, Math.min(startH + dy, getOpenH()));
     buttons.style.maxHeight = h+'px';
     buttons.style.opacity = String(+(h / getOpenH()).toFixed(3));
-    void document.getElementById('players-wrap').offsetHeight;
+    void $('players-wrap').offsetHeight;
     fixLateral(); _fitCache={}; fitTexts();
   }, { passive:true });
 
@@ -1938,20 +1938,20 @@ export function confirmReset(){
 })();
 
 (function init(){
-  const g=document.getElementById('players-grid');
+  const g=$('players-grid');
   for(let i=1;i<=12;i++){
     const d=document.createElement('div');d.className='player-chip';d.textContent=i;
     d.onclick=()=>{
-      document.querySelectorAll('#players-grid .player-chip').forEach(c=>c.classList.remove('on'));
+      $$<HTMLElement>('#players-grid .player-chip').forEach(c=>c.classList.remove('on'));
       d.classList.add('on');numPlayers=i;checkGoBtn();
       selectedPresetIdx=-1;
-      document.querySelectorAll('.preset-card').forEach(c=>c.classList.remove('on'));
+      $$<HTMLElement>('.preset-card').forEach(c=>c.classList.remove('on'));
     };
     g.appendChild(d);
   }
-  document.querySelectorAll('#start-presets .points-chip').forEach(c=>{c.onclick=()=>{document.querySelectorAll('#start-presets .points-chip').forEach(x=>x.classList.remove('on'));c.classList.add('on');startPoints=parseInt(c.dataset.val);document.getElementById('points-custom').value='';checkGoBtn();selectedPresetIdx=-1;document.querySelectorAll('.preset-card').forEach(x=>x.classList.remove('on'));};});
-  document.getElementById('points-custom').addEventListener('input',function(){document.querySelectorAll('#start-presets .points-chip').forEach(x=>x.classList.remove('on'));selectedPresetIdx=-1;document.querySelectorAll('.preset-card').forEach(c=>c.classList.remove('on'));const v=parseInt(this.value);startPoints=isNaN(v)?-1:v;checkGoBtn();});
-  const kp=document.getElementById('modal-keypad');
+  $$<HTMLElement>('#start-presets .points-chip').forEach(c=>{c.onclick=()=>{$$<HTMLElement>('#start-presets .points-chip').forEach(x=>x.classList.remove('on'));c.classList.add('on');startPoints=parseInt(c.dataset.val);$<HTMLInputElement>('points-custom').value='';checkGoBtn();selectedPresetIdx=-1;$$<HTMLElement>('.preset-card').forEach(x=>x.classList.remove('on'));};});
+  $<HTMLInputElement>('points-custom').addEventListener('input',function(){$$<HTMLElement>('#start-presets .points-chip').forEach(x=>x.classList.remove('on'));selectedPresetIdx=-1;$$<HTMLElement>('.preset-card').forEach(c=>c.classList.remove('on'));const v=parseInt(this.value);startPoints=isNaN(v)?-1:v;checkGoBtn();});
+  const kp=$('modal-keypad');
   [7,8,9,4,5,6,1,2,3,'⌫',0,'00'].forEach(k=>{
     const b=document.createElement('button');b.className='key-btn'+(k==='⌫'?' del':'');b.textContent=k;
     b.addEventListener('touchstart', e => {
@@ -1961,16 +1961,16 @@ export function confirmReset(){
     }, { passive: false });
     b.addEventListener('click',e=>{if(e.isTrusted&&!('ontouchstart' in window))pressKey(k);});kp.appendChild(b);
   });
-  document.getElementById('objectif-custom').addEventListener('input',()=>{selectedPresetIdx=-1;document.querySelectorAll('.preset-card').forEach(c=>c.classList.remove('on'));
-    document.querySelectorAll('#objectif-presets .points-chip').forEach(c=>c.classList.remove('on'));
+  $<HTMLInputElement>('objectif-custom').addEventListener('input',()=>{selectedPresetIdx=-1;$$<HTMLElement>('.preset-card').forEach(c=>c.classList.remove('on'));
+    $$<HTMLElement>('#objectif-presets .points-chip').forEach(c=>c.classList.remove('on'));
     checkGoBtn();
   });
-  document.getElementById('objectif-custom').disabled=true;
-  document.getElementById('objectif-custom').placeholder='—';
-  document.querySelectorAll('#objectif-presets .points-chip').forEach(c=>{c.style.pointerEvents='none';c.style.opacity='0.25';});
+  $<HTMLInputElement>('objectif-custom').disabled=true;
+  $<HTMLInputElement>('objectif-custom').placeholder='—';
+  $$<HTMLElement>('#objectif-presets .points-chip').forEach(c=>{c.style.pointerEvents='none';c.style.opacity='0.25';});
   loadSettings();
   setTimeout(()=>{
-    const s=document.getElementById('splash');
+    const s=$('splash');
     s.classList.add('hidden');
     setTimeout(()=>s.remove(),500);
   },400);
@@ -1980,5 +1980,5 @@ export function confirmReset(){
 // Chip d'objectif / de points cliqué : oublie le préréglage sélectionné (appelé depuis le HTML).
 export function clearPresetSelection(){
   selectedPresetIdx=-1;
-  document.querySelectorAll('.preset-card').forEach(c=>c.classList.remove('on'));
+  $$<HTMLElement>('.preset-card').forEach(c=>c.classList.remove('on'));
 }

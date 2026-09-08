@@ -1,5 +1,7 @@
 import { t } from './i18n';
 import { clearAll, elimPoints, fmtNum, lastLoser, players, singleWinner } from './game';
+import { $, $opt } from './dom';
+import type { Player } from './types';
 
 // Publiées par les IIFE ci-dessous (assignées à l'exécution, exportées comme liaisons vivantes).
 export let playElimAnim: (playerIdx:number)=>void;
@@ -7,17 +9,25 @@ export let stopFinAnim: ()=>void;
 export let playFinAnim: (playerIdx:number)=>void;
 export let playWinAnim: (playerIdx:number)=>void;
 
+/** Identifiant de requestAnimationFrame (null quand aucune trame n'est planifiée). */
+type RafId = number | null;
+/** Identifiant de setTimeout. */
+type TimerId = ReturnType<typeof setTimeout>;
+/** Couleur RVB (composantes 0..255). */
+type RGB = [number, number, number];
+
 // ── ANIMATION ÉLIMINATION ─────────────────────────────────────────
 (function(){
-  function easeInOut(t){ return t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2; }
-  function easeOut(t)  { return 1-Math.pow(1-t,3); }
+  function easeInOut(t:number):number{ return t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2; }
+  function easeOut(t:number):number  { return 1-Math.pow(1-t,3); }
 
   // Rotation des textes selon la rotation de la carte
-  const ROT_DEG = {'rot-0':0,'rot-180':180,'rot-l':90,'rot-r':-90};
+  const ROT_DEG: Record<string, number> = {'rot-0':0,'rot-180':180,'rot-l':90,'rot-r':-90};
 
   // Courbe taille : vitesse constante + 2 reculs
-  const PULLBACKS=[{atSize:0.28,to:0.10,frames:120},{atSize:0.55,to:0.22,frames:120}];
-  function buildCurve(steps){
+  interface Pullback { atSize:number; to:number; frames:number }
+  const PULLBACKS: Pullback[]=[{atSize:0.28,to:0.10,frames:120},{atSize:0.55,to:0.22,frames:120}];
+  function buildCurve(steps:number): Float32Array {
     const curve=new Float32Array(steps);
     const speed=1.0/(steps-PULLBACKS.reduce((s,p)=>s+p.frames,0));
     let size=0,pbIdx=0,inPB=false,pbFrom=0,pbTo=0,pbFrames=0,pbProg=0;
@@ -36,10 +46,10 @@ export let playWinAnim: (playerIdx:number)=>void;
   }
 
   // Noise : remplacé par animation CSS (plus léger)
-  let noiseRAF=null;
-  function startNoise(startTime,totalDuration,rotDeg){
-    const canvas=document.getElementById('elim-anim-noise');
-    const ctx=canvas.getContext('2d');
+  let noiseRAF: RafId=null;
+  function startNoise(startTime:number,totalDuration:number,rotDeg:number): void {
+    const canvas=$<HTMLCanvasElement>('elim-anim-noise');
+    const ctx=canvas.getContext('2d')!;
     ctx.clearRect(0,0,canvas.width,canvas.height);
     // Effet CSS via la classe — pas de manipulation pixel JS
     canvas.style.animation='elimNoisePulse '+totalDuration+'ms ease forwards';
@@ -47,10 +57,12 @@ export let playWinAnim: (playerIdx:number)=>void;
   }
 
   // Fragments — dessinés sur canvas (plus de divs DOM)
-  let frags=[], fragCanvas=null, fragCtx=null, fragRAF=null;
-  function spawnFragments(cx,cy,rotDeg){
+  /** Fragment (tête de mort) projeté à l'explosion du crâne. */
+  interface Frag { cx:number; cy:number; angle:number; speed:number; rotDir:number; sz:number; startT:number }
+  let frags: Frag[]=[], fragCanvas: HTMLCanvasElement|null=null, fragCtx: CanvasRenderingContext2D|null=null, fragRAF: RafId=null;
+  function spawnFragments(cx:number,cy:number,rotDeg:number): void {
     frags=[];
-    fragCanvas=document.getElementById('elim-anim-noise');
+    fragCanvas=$<HTMLCanvasElement>('elim-anim-noise');
     fragCanvas.width=window.innerWidth; fragCanvas.height=window.innerHeight;
     fragCtx=fragCanvas.getContext('2d');
     fragCanvas.style.animation='';
@@ -65,12 +77,14 @@ export let playWinAnim: (playerIdx:number)=>void;
       frags.push({cx,cy,angle,speed,rotDir,sz,startT:performance.now()});
     }
   }
-  function animateFragments(){
+  function animateFragments(): void {
     if(!fragCtx) return;
     const now=performance.now();
-    fragCtx.clearRect(0,0,fragCanvas.width,fragCanvas.height);
+    // fragCanvas est toujours posé en même temps que fragCtx (spawnFragments)
+    fragCtx.clearRect(0,0,fragCanvas!.width,fragCanvas!.height);
     let alive=false;
     fragCtx.textAlign='center'; fragCtx.textBaseline='middle';
+    // (fragCtx! : le rétrécissement de la garde ci-dessus ne se propage pas dans la fermeture)
     frags.forEach(f=>{
       const t=Math.min((now-f.startT)/3000,1);
       if(t>=1) return;
@@ -79,38 +93,38 @@ export let playWinAnim: (playerIdx:number)=>void;
       const dy=Math.sin(f.angle)*f.speed*easeOut(t);
       const sz=f.sz*(1-t*0.3);
       const alpha=1-Math.pow(t,1.5)*0.9;
-      fragCtx.save();
-      fragCtx.globalAlpha=alpha;
-      fragCtx.translate(f.cx+dx, f.cy+dy);
-      fragCtx.rotate(f.rotDir*t*Math.PI/180);
-      fragCtx.font=sz+'px serif';
-      fragCtx.fillText('\u2620\uFE0F',0,0);
-      fragCtx.restore();
+      fragCtx!.save();
+      fragCtx!.globalAlpha=alpha;
+      fragCtx!.translate(f.cx+dx, f.cy+dy);
+      fragCtx!.rotate(f.rotDir*t*Math.PI/180);
+      fragCtx!.font=sz+'px serif';
+      fragCtx!.fillText('\u2620\uFE0F',0,0);
+      fragCtx!.restore();
     });
     fragCtx.globalAlpha=1;
     if(alive){ fragRAF=requestAnimationFrame(animateFragments); }
     else{
-      fragCtx.clearRect(0,0,fragCanvas.width,fragCanvas.height);
+      fragCtx.clearRect(0,0,fragCanvas!.width,fragCanvas!.height);
       frags=[]; fragRAF=null;
     }
   }
 
   // Timers et RAF
-  let pending=[], animRAF=null;
-  function clearAll(){
+  let pending: TimerId[]=[], animRAF: RafId=null;
+  function clearAll(): void {
     pending.forEach(id=>clearTimeout(id)); pending=[];
     if(animRAF){cancelAnimationFrame(animRAF);animRAF=null;}
     if(fragRAF){cancelAnimationFrame(fragRAF);fragRAF=null;}
-    const canvas_noise=document.getElementById('elim-anim-noise');
+    const canvas_noise=$opt<HTMLCanvasElement>('elim-anim-noise');
     if(canvas_noise){ canvas_noise.style.animation=''; if(fragCtx) fragCtx.clearRect(0,0,canvas_noise.width,canvas_noise.height); }
     if(noiseRAF){cancelAnimationFrame(noiseRAF);noiseRAF=null;}
     frags=[];
   }
 
-  function resetTexts(){
-    const name =document.getElementById('elim-anim-name');
-    const msg  =document.getElementById('elim-anim-msg');
-    const score=document.getElementById('elim-anim-score');
+  function resetTexts(): void {
+    const name =$('elim-anim-name');
+    const msg  =$('elim-anim-msg');
+    const score=$('elim-anim-score');
     [name,msg,score].forEach(el=>{
       el.style.transition='none'; el.style.opacity='0';
     });
@@ -119,11 +133,11 @@ export let playWinAnim: (playerIdx:number)=>void;
     score.style.transform='translateY(8px)';
   }
 
-  function showTexts(){
+  function showTexts(): void {
     [{id:'elim-anim-name',delay:0},{id:'elim-anim-msg',delay:130},{id:'elim-anim-score',delay:260}]
     .forEach(({id,delay})=>{
       const tid=setTimeout(()=>{
-        const el=document.getElementById(id);
+        const el=$(id);
         el.style.transition='opacity 0.4s ease, transform 0.4s ease';
         el.style.opacity='1'; el.style.transform='none';
       },delay);
@@ -132,13 +146,13 @@ export let playWinAnim: (playerIdx:number)=>void;
   }
 
   const T_GROW=1800,T_FLASH=1950,T_TEXT=1950,T_FADE=4400,T_TOTAL=5000;
-  function maxSize(){ return Math.min(window.innerWidth,window.innerHeight)*1.60; }
+  function maxSize(): number { return Math.min(window.innerWidth,window.innerHeight)*1.60; }
 
   // Point d'entrée — appelé depuis elimDirect
-  playElimAnim = function(playerIdx){
+  playElimAnim = function(playerIdx:number): void {
     clearAll();
-    const p       = players[playerIdx];
-    const cardEl  = document.getElementById('card-'+playerIdx);
+    const p: Player = players[playerIdx];
+    const cardEl  = $opt('card-'+playerIdx);
     // Rotation depuis la classe CSS de la carte (rot-0, rot-180, rot-l, rot-r)
     let rot = 'rot-0';
     if(cardEl){
@@ -150,20 +164,21 @@ export let playWinAnim: (playerIdx:number)=>void;
     const score = fmtNum(p.finalScore!==undefined ? p.finalScore : p.score);
 
     // Textes
-    document.getElementById('elim-anim-name').textContent  = name;
-    document.getElementById('elim-anim-msg').textContent   = t('elimAnimMsg')||'TU AS ÉCHOUÉ';
-    document.getElementById('elim-anim-score').textContent = score+' pts';
+    $('elim-anim-name').textContent  = name;
+    $('elim-anim-msg').textContent   = t('elimAnimMsg')||'TU AS ÉCHOUÉ';
+    $('elim-anim-score').textContent = score+' pts';
 
     // Rotation des textes selon la carte
-    document.getElementById('elim-anim-texts').style.transform = `rotate(${rotDeg}deg)`;
+    $('elim-anim-texts').style.transform = `rotate(${rotDeg}deg)`;
 
     resetTexts();
 
     // Origine du clip-path = centre de la carte
-    const overlay = document.getElementById('elim-anim-overlay');
-    const skull   = document.getElementById('elim-anim-skull');
+    const overlay = $('elim-anim-overlay');
+    const skull   = $('elim-anim-skull');
 
-    let ox=50, oy=50;
+    // Pourcentages : nombre par défaut, chaîne (toFixed) une fois calculés
+    let ox: number|string=50, oy: number|string=50;
     if(cardEl){
       const r=cardEl.getBoundingClientRect();
       ox=((r.left+r.width/2)/window.innerWidth*100).toFixed(1);
@@ -183,7 +198,7 @@ export let playWinAnim: (playerIdx:number)=>void;
 
     startNoise(startT, T_TOTAL, rotDeg);
 
-    function frame(now){
+    function frame(now:number): void {
       const e=now-startT;
 
       if(e<T_GROW){
@@ -222,7 +237,8 @@ export let playWinAnim: (playerIdx:number)=>void;
           overlay.style.clipPath='';
           overlay.style.transition='';
           skull.style.cssText='';
-          frags.forEach(f=>f.el.remove()); frags=[];
+          // any : reliquat de l'ancienne version à divs DOM — les fragments canvas n'ont pas de « el »
+          frags.forEach(f=>(f as any).el.remove()); frags=[];
           resetTexts();
           if(window._afterElimAnim) window._afterElimAnim();
         },650);
@@ -234,11 +250,11 @@ export let playWinAnim: (playerIdx:number)=>void;
     animRAF=requestAnimationFrame(frame);
   };
 
-  window._stopElimAnim = function(){
+  window._stopElimAnim = function(): void {
     clearAll();
-    const ov=document.getElementById('elim-anim-overlay');
+    const ov=$opt('elim-anim-overlay');
     if(ov){ ov.style.animation=''; ov.style.display='none'; ov.style.clipPath=''; ov.style.transition=''; }
-    const skull=document.getElementById('elim-anim-skull');
+    const skull=$opt('elim-anim-skull');
     if(skull) skull.style.cssText='';
     document.querySelectorAll('.frag').forEach(f=>f.remove());
     if(window._afterElimAnim) window._afterElimAnim();
@@ -246,10 +262,10 @@ export let playWinAnim: (playerIdx:number)=>void;
 })();
 
 // ── STOP ANIMATIONS ───────────────────────────────────────────────
-export function stopWinAnim(){
+export function stopWinAnim(): void {
   if(window._stopWinAnim) window._stopWinAnim();
 }
-export function stopElimAnim(){
+export function stopElimAnim(): void {
   if(window._stopElimAnim) window._stopElimAnim();
 }
 
@@ -257,7 +273,11 @@ export function stopElimAnim(){
 (function(){
 var _FIN_GLOWS=['rgba(0,255,224,0.7)','rgba(255,100,0,0.7)','rgba(180,100,255,0.7)',
                 'rgba(255,220,0,0.7)','rgba(255,80,120,0.7)'];
-var _FIN_RACERS=[
+/** Bolide de la course : emoji, halo (rgba) et vitesse. */
+interface FinRacer { e:string; g:string; s:number }
+/** Bolide en piste : position et décalage vertical en plus. */
+interface FinMoto extends FinRacer { x:number; oY:number; /** posé à chaque trame (_finFrame) */ y?:number }
+var _FIN_RACERS: FinRacer[]=[
   {e:'🏎️',g:_FIN_GLOWS[0],s:6.75},
   {e:'🏎️',g:_FIN_GLOWS[1],s:6.0},
   {e:'🏎️',g:_FIN_GLOWS[2],s:7.35},
@@ -268,7 +288,7 @@ var _FIN_RACERS=[
 ];
 var _FIN_CONF_COLORS=['#ff4466','#ffd700','#00ffe0','#ff8800','#cc66ff','#ffffff','#66ff88'];
 
-function _finDrawFlag(ctx,px,py,t,sz){
+function _finDrawFlag(ctx:CanvasRenderingContext2D,px:number,py:number,t:number,sz:number): void {
   ctx.save(); ctx.translate(px,py);
   ctx.strokeStyle='rgba(200,200,200,0.8)'; ctx.lineWidth=3;
   ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,sz*0.85); ctx.stroke();
@@ -286,8 +306,10 @@ function _finDrawFlag(ctx,px,py,t,sz){
   ctx.restore();
 }
 
-var _finConfetti=[];
-function _finSpawnConfetti(W){
+/** Confetti du finisher. */
+interface FinConfetti { x:number; y:number; vx:number; vy:number; rot:number; rotV:number; w:number; h:number; col:string; life:number; decay:number }
+var _finConfetti: FinConfetti[]=[];
+function _finSpawnConfetti(W:number): void {
   _finConfetti.push({
     x:Math.random()*W, y:-20,
     vx:(Math.random()-0.5)*2, vy:1.5+Math.random()*2,
@@ -297,7 +319,7 @@ function _finSpawnConfetti(W){
     life:1, decay:0.004+Math.random()*0.003
   });
 }
-function _finDrawConfetti(ctx,W,H){
+function _finDrawConfetti(ctx:CanvasRenderingContext2D,W:number,H:number): void {
   if(Math.random()<0.18) _finSpawnConfetti(W);
   for(var i=_finConfetti.length-1;i>=0;i--){
     var c=_finConfetti[i];
@@ -314,35 +336,39 @@ function _finDrawConfetti(ctx,W,H){
   ctx.globalAlpha=1;
 }
 
-var _finSparks=[];
-function _finSpawnSpark(x,y,g){
+/** Étincelle derrière un bolide (g = halo rgba du bolide). */
+interface FinSpark { x:number; y:number; vx:number; vy:number; life:number; decay:number; g:string }
+var _finSparks: FinSpark[]=[];
+function _finSpawnSpark(x:number,y:number,g:string): void {
   var a=Math.PI*0.5+Math.PI*(0.3+Math.random()*0.4), s=1+Math.random()*3;
   _finSparks.push({x:x,y:y,vx:Math.cos(a)*s-1.5,vy:Math.sin(a)*s,
     life:1,decay:0.07+Math.random()*0.04,g:g});
 }
-function _finDrawSparks(ctx){
+function _finDrawSparks(ctx:CanvasRenderingContext2D): void {
   for(var i=_finSparks.length-1;i>=0;i--){
     var s=_finSparks[i]; s.x+=s.vx; s.y+=s.vy; s.vy+=0.2; s.life-=s.decay;
     if(s.life<=0){_finSparks.splice(i,1);continue;}
-    var rgb=s.g.match(/[\d.]+/g);
+    var rgb=s.g.match(/[\d.]+/g)!; // les halos sont des rgba(...) littéraux : toujours 4 nombres
     ctx.beginPath(); ctx.arc(s.x,s.y,Math.max(0,2.5*s.life),0,Math.PI*2);
     ctx.fillStyle='rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+','+s.life+')'; ctx.fill();
   }
 }
 
-function _finSetEl(id,opacity,transform,transition){
-  var el=document.getElementById(id); if(!el)return;
+function _finSetEl(id:string,opacity:number,transform?:string,transition?:string): void {
+  var el=$opt(id); if(!el)return;
   el.style.transition=transition||'none'; el.style.opacity=String(opacity);
   if(transform!==undefined) el.style.transform=transform;
 }
-function _finResetTexts(){
+function _finResetTexts(): void {
   _finSetEl('fin-anim-name', 0,'scale(0.5)');
   _finSetEl('fin-anim-msg',  0,'translateY(12px)');
   _finSetEl('fin-anim-score',0,'translateY(12px)');
 }
 
-var _finFStart=0,_finFOverlay=null,_finFCtx=null,_finFW=0,_finFH=0;
-function _finFadeFrame(now){
+// Overlay / contexte du fondu : posés dans _finFrame avant la première trame de fondu
+// (null! : pas de garde à l'exécution, comme en JS).
+var _finFStart=0,_finFOverlay: HTMLElement=null!,_finFCtx: CanvasRenderingContext2D=null!,_finFW=0,_finFH=0;
+function _finFadeFrame(now:number): void {
   var ft=Math.min((now-_finFStart)/600,1);
   _finFOverlay.style.opacity=String(1-ft);
   if(ft<1){ requestAnimationFrame(_finFadeFrame); }
@@ -354,12 +380,14 @@ function _finFadeFrame(now){
   }
 }
 
-var _finRAF=null, _finOverlay=null, _finCanvas=null, _finCtx=null, _finEmojiOk=false;
-var _finStartT=0, _finRot=0, _finFlagWave=0, _finMotos=[];
+// Overlay, canvas et contexte : posés dans playFinAnim avant la première trame
+// (null! : pas de garde à l'exécution, comme en JS).
+var _finRAF: RafId=null, _finOverlay: HTMLElement=null!, _finCanvas: HTMLCanvasElement=null!, _finCtx: CanvasRenderingContext2D=null!, _finEmojiOk=false;
+var _finStartT=0, _finRot=0, _finFlagWave=0, _finMotos: FinMoto[]=[];
 var _finShown0=false, _finShown1=false, _finShown2=false, _finFadeDone=false;
 var _FIN_T0=1600, _FIN_T1=1800, _FIN_T2=1950, _FIN_TFADE=4600, _FIN_TTOTAL=5200;
 
-function _finFrame(now){
+function _finFrame(now:number): void {
   var e=now-_finStartT;
   var W=_finCanvas.width, H=_finCanvas.height;
   _finCtx.fillStyle='rgba(0,0,0,0.94)';
@@ -385,7 +413,7 @@ function _finFrame(now){
     m.x+=accel; m.y=trackY+m.oY+Math.sin(e*0.013+i)*2;
     if(m.x>diag+motoSz) m.x=-diag-motoSz;
     if(Math.random()<0.08) _finSpawnSpark(m.x-motoSz*0.3, m.y+motoSz*0.2, m.g);
-    var rgb=m.g.match(/[\d.]+/g);
+    var rgb=m.g.match(/[\d.]+/g)!; // halo rgba(...) littéral : toujours 4 nombres
     var tLen=motoSz*1.6, tH=motoSz*0.07, tX=m.x-motoSz*0.8;
     var grad=_finCtx.createLinearGradient(tX,m.y,tX-tLen,m.y);
     grad.addColorStop(0,'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+',0.7)');
@@ -469,7 +497,7 @@ function _finFrame(now){
       _finCtx.fillRect(cw*0.52, ch*0.0, cw*0.04, ch*0.12);
 
       // Roues (4 visibles en 2D — avant et arrière)
-      [[-cw*0.36,ch*0.25,ch*0.30],[cw*0.38,ch*0.18,ch*0.24]].forEach(function(p){
+      [[-cw*0.36,ch*0.25,ch*0.30],[cw*0.38,ch*0.18,ch*0.24]].forEach(function(p:number[]){
         // Pneu
         _finCtx.beginPath(); _finCtx.ellipse(p[0],p[1],p[2],p[2]*0.55,0,0,Math.PI*2);
         _finCtx.fillStyle='#111'; _finCtx.fill();
@@ -504,33 +532,33 @@ function _finFrame(now){
   _finRAF=e<_FIN_TTOTAL+100?requestAnimationFrame(_finFrame):null;
 }
 
-stopFinAnim = function(){
+stopFinAnim = function(): void {
   if(_finRAF){cancelAnimationFrame(_finRAF);_finRAF=null;}
   _finSparks.length=0; _finConfetti.length=0;
-  var ov=document.getElementById('fin-anim-overlay');
+  var ov=$opt('fin-anim-overlay');
   if(ov){ov.style.display='none'; ov.style.opacity='1';}
   _finResetTexts();
   if(window._afterFinAnim) window._afterFinAnim();
 };
 
-playFinAnim = function(playerIdx){
+playFinAnim = function(playerIdx:number): void {
   if(_finRAF){cancelAnimationFrame(_finRAF);_finRAF=null;}
   _finSparks.length=0; _finConfetti.length=0;
-  var p=players[playerIdx];
-  var cardEl=document.getElementById('card-'+playerIdx);
+  var p: Player=players[playerIdx];
+  var cardEl=$opt('card-'+playerIdx);
   var rot=0;
-  if(cardEl){var m=cardEl.className.match(/rot-[^\s]+/);if(m)rot={'rot-0':0,'rot-180':180,'rot-l':90,'rot-r':-90}[m[0]]||0;}
+  if(cardEl){var m=cardEl.className.match(/rot-[^\s]+/);if(m)rot=({'rot-0':0,'rot-180':180,'rot-l':90,'rot-r':-90} as Record<string,number>)[m[0]]||0;}
   var name=p.playerName||(t('player')+' '+(playerIdx+1));
   var score=fmtNum(p.finalScore!==undefined?p.finalScore:(p.rawScore!==undefined?p.rawScore:p.score));
-  document.getElementById('fin-anim-name').textContent=name;
-  document.getElementById('fin-anim-msg').textContent=(t('finisher')||'FINISHER')+' #'+p.winRank;
-  document.getElementById('fin-anim-score').textContent=score+' pts';
+  $('fin-anim-name').textContent=name;
+  $('fin-anim-msg').textContent=(t('finisher')||'FINISHER')+' #'+p.winRank;
+  $('fin-anim-score').textContent=score+' pts';
   _finResetTexts();
-  document.getElementById('fin-anim-texts').style.transform='rotate('+rot+'deg)';
-  _finOverlay=document.getElementById('fin-anim-overlay');
-  _finCanvas=document.getElementById('fin-anim-canvas');
+  $('fin-anim-texts').style.transform='rotate('+rot+'deg)';
+  _finOverlay=$('fin-anim-overlay');
+  _finCanvas=$<HTMLCanvasElement>('fin-anim-canvas');
   _finCanvas.width=window.innerWidth; _finCanvas.height=window.innerHeight;
-  _finCtx=_finCanvas.getContext('2d');
+  _finCtx=_finCanvas.getContext('2d')!;
   _finCtx.fillStyle='rgba(0,0,0,0.94)';
   _finCtx.fillRect(0,0,_finCanvas.width,_finCanvas.height);
   _finOverlay.style.display='flex'; _finOverlay.style.opacity='1';
@@ -542,13 +570,13 @@ playFinAnim = function(playerIdx){
   var diag=Math.ceil(Math.sqrt(W*W+H*H));
   var gaps=[0,1.8,3.8,6.0,8.5,11.5,15.0];
   var offsets=[-0.07,0.07,-0.05,0.07,-0.07,0.05,-0.55];
-  _finMotos=_FIN_RACERS.map(function(r,i){
+  _finMotos=_FIN_RACERS.map(function(r,i): FinMoto {
     return {e:r.e,g:r.g,s:r.s,x:-motoSz*(0.5+gaps[i]),oY:motoSz*offsets[i]};
   });
   // Détection support emoji sur canvas
   (function(){
     var tc=document.createElement('canvas'); tc.width=20; tc.height=20;
-    var tx=tc.getContext('2d'); tx.font='16px serif';
+    var tx=tc.getContext('2d')!; tx.font='16px serif';
     tx.fillText('\uD83C\uDFCE\uFE0F',0,16);
     var d=tx.getImageData(0,0,20,20).data;
     var hasColor=false;
@@ -561,13 +589,18 @@ playFinAnim = function(playerIdx){
 
 // ── ANIMATION VICTOIRE ────────────────────────────────────────────
 (function(){
-var _COLORS=[[0,255,224],[0,140,255],[255,180,0],[255,215,0],[255,255,255],[100,200,255],[255,120,0]];
-function _rndCol(){ return _COLORS[Math.floor(Math.random()*_COLORS.length)]; }
-function _rgba(c,a){ return 'rgba('+c[0]+','+c[1]+','+c[2]+','+a+')'; }
+var _COLORS: RGB[]=[[0,255,224],[0,140,255],[255,180,0],[255,215,0],[255,255,255],[100,200,255],[255,120,0]];
+function _rndCol(): RGB { return _COLORS[Math.floor(Math.random()*_COLORS.length)]; }
+function _rgba(c:RGB,a:number): string { return 'rgba('+c[0]+','+c[1]+','+c[2]+','+a+')'; }
 
-var _rockets=[], _exps=[];
+/** Fusée du feu d'artifice (ty = hauteur d'explosion, trail = traînée). */
+interface Rocket { x:number; y:number; ty:number; vy:number; col:RGB; trail:{x:number;y:number}[]; done:boolean }
+/** Particule d'une explosion (g = gravité). */
+interface ExpPart { x:number; y:number; vx:number; vy:number; life:number; decay:number; sz:number; col:RGB; g:number }
+interface Explosion { parts:ExpPart[] }
+var _rockets: Rocket[]=[], _exps: Explosion[]=[];
 
-function _spawnRocket(W,H,rot){
+function _spawnRocket(W:number,H:number,rot:number): void {
   var x=W*(0.1+Math.random()*0.8);
   var topMargin=(rot===90||rot===-90)?0.25:0.05;
   var ty=H*(topMargin+Math.random()*0.35);
@@ -575,8 +608,8 @@ function _spawnRocket(W,H,rot){
   _rockets.push({x:x,y:H+20,ty:ty,vy:-(H-ty)/dur,col:_rndCol(),trail:[],done:false});
 }
 
-function _spawnExp(x,y){
-  var col=_rndCol(); var n=40+Math.floor(Math.random()*20); var parts=[];
+function _spawnExp(x:number,y:number): void {
+  var col=_rndCol(); var n=40+Math.floor(Math.random()*20); var parts: ExpPart[]=[];
   for(var i=0;i<n;i++){
     var a=(i/n)*Math.PI*2+(Math.random()-0.5)*0.4;
     var s=2+Math.random()*5;
@@ -590,7 +623,7 @@ function _spawnExp(x,y){
   _exps.push({parts:parts});
 }
 
-function _tick(ctx,W,H,rot){
+function _tick(ctx:CanvasRenderingContext2D,W:number,H:number,rot:number): void {
   ctx.fillStyle='rgba(0,0,0,0.14)';
   ctx.fillRect(0,0,W,H);
   ctx.save();
@@ -600,7 +633,7 @@ function _tick(ctx,W,H,rot){
     r.trail.push({x:r.x,y:r.y});
     if(r.trail.length>18) r.trail.shift();
     for(var ti=0;ti<r.trail.length;ti++){
-      var p=r.trail[ti]; var al=(ti/r.trail.length)*0.8;
+      let p=r.trail[ti]; var al=(ti/r.trail.length)*0.8;
       ctx.beginPath(); ctx.arc(p.x,p.y,Math.max(0,2.5*(ti/r.trail.length)),0,Math.PI*2);
       ctx.fillStyle=_rgba(r.col,al); ctx.fill();
     }
@@ -618,7 +651,7 @@ function _tick(ctx,W,H,rot){
   for(var e=_exps.length-1;e>=0;e--){
     var ex=_exps[e]; var alive=false;
     for(var pi=0;pi<ex.parts.length;pi++){
-      var p=ex.parts[pi];
+      let p=ex.parts[pi];
       if(p.life<=0) continue;
       alive=true;
       p.x+=p.vx; p.y+=p.vy; p.vy+=p.g; p.life-=p.decay;
@@ -632,22 +665,24 @@ function _tick(ctx,W,H,rot){
   ctx.restore();
 }
 
-function _setEl(id,opacity,transform,transition){
-  var el=document.getElementById(id);
+function _setEl(id:string,opacity:number,transform?:string,transition?:string): void {
+  var el=$opt(id);
   if(!el) return;
   el.style.transition=transition||'none';
   el.style.opacity=String(opacity);
   if(transform!==undefined) el.style.transform=transform;
 }
-function _resetTexts(){
+function _resetTexts(): void {
   _setEl('win-anim-trophy-canvas',0,'scale(0.02) rotate(-20deg)');
   _setEl('win-anim-name',  0,'scale(0.5)');
   _setEl('win-anim-msg',   0,'translateY(12px)');
   _setEl('win-anim-score', 0,'translateY(12px)');
 }
 
-var _fadeStart=0,_fadeOverlay=null,_fadeCtx=null,_fadeW=0,_fadeH=0;
-function _fadeFrame(now){
+// Overlay / contexte du fondu : posés dans _frame avant la première trame de fondu
+// (null! : pas de garde à l'exécution, comme en JS).
+var _fadeStart=0,_fadeOverlay: HTMLElement=null!,_fadeCtx: CanvasRenderingContext2D=null!,_fadeW=0,_fadeH=0;
+function _fadeFrame(now:number): void {
   var ft=Math.min((now-_fadeStart)/600,1);
   _fadeOverlay.style.opacity=String(1-ft);
   if(ft<1){ requestAnimationFrame(_fadeFrame); }
@@ -659,13 +694,15 @@ function _fadeFrame(now){
   }
 }
 
-var _winRAF=null;
-var _gOverlay=null,_gCanvas=null,_gCtx=null;
+var _winRAF: RafId=null;
+// Overlay, canvas et contexte : posés dans playWinAnim avant la première trame
+// (null! : pas de garde à l'exécution ; _stopWinAnim teste leur présence).
+var _gOverlay: HTMLElement=null!,_gCanvas: HTMLCanvasElement=null!,_gCtx: CanvasRenderingContext2D=null!;
 var _gStartT=0,_gVolleys=0,_gHasScore=false,_gRot=0;
 var _gShown0=false,_gShown1=false,_gShown2=false,_gShown3=false,_gFadeDone=false;
 var _T0=1300,_T1=580,_T2=780,_T3=920,_T_FADE=5200,_T_TOTAL=5800;
 
-function _frame(now){
+function _frame(now:number): void {
   var e=now-_gStartT;
   var noRockets=(_gVolleys>=999);
   if(!noRockets&&_gVolleys<6&&e>_gVolleys*60){ _spawnRocket(_gCanvas.width,_gCanvas.height,_gRot); _gVolleys++; }
@@ -684,9 +721,9 @@ function _frame(now){
 }
 
 // Dessine une coupe vectorielle sur un canvas
-function _drawTrophy(canvas){
+function _drawTrophy(canvas:HTMLCanvasElement): void {
   var W=canvas.width, H=canvas.height;
-  var ctx=canvas.getContext('2d');
+  var ctx=canvas.getContext('2d')!;
   ctx.clearRect(0,0,W,H);
   var cx=W/2, s=W*0.42;
 
@@ -736,7 +773,7 @@ function _drawTrophy(canvas){
   ctx.closePath(); ctx.fill();
 
   // Anses
-  [[-1],[1]].forEach(function(side){
+  [[-1],[1]].forEach(function(side:number[]){
     var sx=side[0];
     ctx.strokeStyle=gCoupe;
     var gAnse=ctx.createLinearGradient(cx+sx*s*0.72,H*0.3,cx+sx*s*1.05,H*0.5);
@@ -765,14 +802,14 @@ function _drawTrophy(canvas){
   ctx.restore(); // fin ombre
 }
 
-playWinAnim = function(playerIdx){
+playWinAnim = function(playerIdx:number): void {
   if(_winRAF){ cancelAnimationFrame(_winRAF); _winRAF=null; }
   _rockets.length=0; _exps.length=0;
 
-  var p=players[playerIdx];
-  var cardEl=document.getElementById('card-'+playerIdx);
+  var p: Player=players[playerIdx];
+  var cardEl=$opt('card-'+playerIdx);
   var rot=0;
-  if(cardEl){ var m=cardEl.className.match(/rot-[^\s]+/); if(m) rot={'rot-0':0,'rot-180':180,'rot-l':90,'rot-r':-90}[m[0]]||0; }
+  if(cardEl){ var m=cardEl.className.match(/rot-[^\s]+/); if(m) rot=({'rot-0':0,'rot-180':180,'rot-l':90,'rot-r':-90} as Record<string,number>)[m[0]]||0; }
 
   var name=p.playerName||(t('player')+' '+(playerIdx+1));
   var score=fmtNum(p.finalScore!==undefined ? p.finalScore : (p.rawScore!==undefined ? p.rawScore : p.score));
@@ -783,14 +820,14 @@ playWinAnim = function(playerIdx){
   var modeUniqueWinner = !!(singleWinner || (elimPoints!==null && !lastLoser));
   var isChamp = p.winRank===1 && modeUniqueWinner;
   var msg = isChamp ? (t('winAnimMsg')||'VICTOIRE !') : (t('finisher')||'FINISHEUR')+' #'+p.winRank;
-  var _tc=document.getElementById('win-anim-trophy-canvas');
+  var _tc=$opt<HTMLCanvasElement>('win-anim-trophy-canvas');
   if(_tc){
     var _tSz=Math.min(window.innerWidth*0.22,140);
     _tc.width=_tSz; _tc.height=_tSz;
     if(isChamp){ _drawTrophy(_tc); }
     else{
       // Drapeau damier pour finisher
-      var _ctx=_tc.getContext('2d');
+      var _ctx=_tc.getContext('2d')!;
       _ctx.clearRect(0,0,_tSz,_tSz);
       _ctx.font=(_tSz*0.72)+'px serif';
       _ctx.textAlign='center'; _ctx.textBaseline='middle';
@@ -798,25 +835,26 @@ playWinAnim = function(playerIdx){
     }
   }
 
-  document.getElementById('win-anim-name').textContent=name;
-  document.getElementById('win-anim-msg').textContent=msg;
-  document.getElementById('win-anim-score').textContent=score+' pts';
+  $('win-anim-name').textContent=name;
+  $('win-anim-msg').textContent=msg;
+  $('win-anim-score').textContent=score+' pts';
 
   // Finishers #2+ → animation finisher dédiée
+  // (« window.playFinAnim » dans l'original : la fonction est désormais une liaison de ce module)
   if(!isChamp){
-    if(window.playFinAnim) playFinAnim(playerIdx);
+    if(playFinAnim) playFinAnim(playerIdx);
     return;
   }
 
   // Animation complète pour le champion #1
   _T0=1300; _T1=580; _T2=780; _T3=920; _T_FADE=5200; _T_TOTAL=5800;
   _resetTexts();
-  document.getElementById('win-anim-texts').style.transform='rotate('+rot+'deg)';
-  _gOverlay=document.getElementById('win-anim-overlay');
-  _gCanvas=document.getElementById('win-anim-canvas');
+  $('win-anim-texts').style.transform='rotate('+rot+'deg)';
+  _gOverlay=$('win-anim-overlay');
+  _gCanvas=$<HTMLCanvasElement>('win-anim-canvas');
   _gCanvas.width=window.innerWidth;
   _gCanvas.height=window.innerHeight;
-  _gCtx=_gCanvas.getContext('2d');
+  _gCtx=_gCanvas.getContext('2d')!;
   _gCtx.fillStyle='rgba(0,0,0,0.92)';
   _gCtx.fillRect(0,0,_gCanvas.width,_gCanvas.height);
   _gOverlay.style.display='flex';
@@ -826,15 +864,14 @@ playWinAnim = function(playerIdx){
   _winRAF=requestAnimationFrame(_frame);
 };
 
-window._stopWinAnim=function(){
+window._stopWinAnim=function(): void {
   if(window._winAnimDelayTID){ clearTimeout(window._winAnimDelayTID); window._winAnimDelayTID=null; }
   if(_winRAF){ cancelAnimationFrame(_winRAF); _winRAF=null; }
   _rockets.length=0; _exps.length=0;
-  var ov=document.getElementById('win-anim-overlay');
+  var ov=$opt('win-anim-overlay');
   if(ov){ ov.style.display='none'; ov.style.opacity='1'; }
   if(_gCtx&&_gCanvas) _gCtx.clearRect(0,0,_gCanvas.width,_gCanvas.height);
   _resetTexts();
   if(window._afterWinAnim) window._afterWinAnim();
 };
 })();
-

@@ -15,9 +15,17 @@ export interface Player {
   winRank?: number;
   /** rang d'élimination (1 = premier éliminé) */
   elimRank?: number;
+  /** rotation de la carte à l'écran (mémorisée pour orienter le modal de score) */
+  rot?: CardRot;
 }
 
+/** Orientation d'une carte joueur (et du modal de score qui en découle). */
+export type CardRot = 'rot-0' | 'rot-180' | 'rot-l' | 'rot-r';
+
 export type ObjectifMode = 'none' | 'win' | 'elim';
+
+/** Blocage des gains/pertes (UI supprimée, conservé dans les sauvegardes). */
+export type BloquerMode = 'none' | 'min' | 'max';
 
 /** Réglages d'une partie (mémorisés pour « nouvelle partie, mêmes réglages »). */
 export interface GameConfig {
@@ -25,7 +33,7 @@ export interface GameConfig {
   startPoints: number;
   objectifMode: ObjectifMode;
   objectifVal: number | null;
-  bloquerMode: string;
+  bloquerMode: BloquerMode;
   allowNeg: boolean;
   singleWinner: boolean;
   lastLoser: boolean;
@@ -61,6 +69,37 @@ export interface HistoryGroup {
   rank: number;
 }
 
+/** Partie en cours persistée dans localStorage (scoretrack_save). */
+export interface GameSave {
+  players: Player[];
+  seatOrder: number[];
+  history: HistoryGroup[];
+  actionCounter: number;
+  numPlayers: number;
+  startPoints: number;
+  /** null = pas de plafond (Infinity n'est pas sérialisable) */
+  maxPoints: number | null;
+  allowNeg: boolean;
+  saveVersion: number;
+  elimPoints: number | null;
+  winPoints: number | null;
+  objectifMode: ObjectifMode;
+  bloquerMode: BloquerMode;
+  rankCounter: number;
+  singleWinner: boolean;
+  lastLoser: boolean;
+  lastGameConfig: GameConfig | null;
+  ts: number;
+}
+
+/** Instantané empilé par saveUndo (sérialisé en JSON dans undoStack). */
+export interface UndoSnapshot {
+  players: Player[];
+  history: HistoryGroup[];
+  seatOrder: number[];
+  actionCounter: number;
+}
+
 /** Jeu préconfiguré de l'écran d'accueil. */
 export interface GamePreset {
   nameKey: string;
@@ -74,9 +113,16 @@ export interface GamePreset {
   allowNeg?: boolean;
 }
 
+/** Identifiants des thèmes visuels (attribut data-theme). */
+export type ThemeId =
+  | 'cyber' | 'cyber-light' | 'dark' | 'dark-light' | 'neon-pink' | 'neon-pink-light'
+  | 'arcade' | 'arcade-light' | 'nature' | 'nature-light' | 'sunset' | 'sunset-light'
+  | 'ocean' | 'ocean-light' | 'gold' | 'gold-light' | 'sobre' | 'light'
+  | 'mono' | 'mono-light' | 'ldm' | 'ldm-day';
+
 /** Thème visuel (couleurs de la grille de sélection). */
 export interface Theme {
-  id: string;
+  id: ThemeId;
   nameKey: string;
   bg: string;
   a: string;
