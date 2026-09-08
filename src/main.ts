@@ -66,6 +66,6 @@ const handlers = {
 };
 Object.assign(window, handlers);
 // Espace de noms pour les tests et le débogage (modules exposés).
-(window as any).ScoreTrack = { i18nTranslations, i18n, game, recapPdf, animations, diceUi, dice3dCube, dice3dPolyhedra, dice3dDie };
+window.ScoreTrack = { i18nTranslations, i18n, game, recapPdf, animations, diceUi, dice3dCube, dice3dPolyhedra, dice3dDie };
 
 drawSplashIcon();

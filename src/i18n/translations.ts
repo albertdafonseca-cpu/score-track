@@ -2,7 +2,20 @@
 // ══════════════════════════════════════════════════════════════════
 //  i18n — 18 langues
 // ══════════════════════════════════════════════════════════════════
-export const LANGS = [
+
+/** Codes des langues disponibles (clés de `T`, codes de `LANGS`). */
+export type LangCode =
+  'da' | 'de' | 'en' | 'es' | 'fr' | 'it' | 'nl' | 'nb' | 'pl' |
+  'pt' | 'fi' | 'sv' | 'tr' | 'ru' | 'ar' | 'zh' | 'ja' | 'ko';
+
+/** Entrée du sélecteur de langue. */
+export interface LangInfo {
+  code: LangCode;
+  flag: string;
+  name: string;
+}
+
+export const LANGS: LangInfo[] = [
   { code:'da', flag:'🇩🇰', name:'Dansk' },
   { code:'de', flag:'🇩🇪', name:'Deutsch' },
   { code:'en', flag:'🇬🇧', name:'English' },
@@ -23,6 +36,10 @@ export const LANGS = [
   { code:'ko', flag:'🇰🇷', name:'한국어' },
 ];
 
+/** Table des traductions ; `satisfies` conserve le type précis de chaque langue
+ *  (pour dériver `TranslationKey` de `en`) tout en vérifiant qu'aucun code de
+ *  `LangCode` ne manque. Certaines langues portent des clés en plus de `en`
+ *  (`updated`, `Score`) : une table est donc un `Record<string, string>`. */
 export const T = {
   en: {
     appSub:'Universal score counter',
@@ -2279,4 +2296,7 @@ export const T = {
     winAnimMsg:'SEIER!',
     btnNoClear:'Ingenting å<br>slette'
   },
-};
+} satisfies Record<LangCode, Record<string, string>>;
+
+/** Clé de traduction : celles de la langue de référence (`en`). */
+export type TranslationKey = keyof typeof T['en'];

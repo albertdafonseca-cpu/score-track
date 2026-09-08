@@ -1,11 +1,12 @@
 import { t } from './i18n';
+import { $q } from './dom';
 
 if(screen.orientation?.lock)screen.orientation.lock('portrait').catch(()=>{});
   document.addEventListener('contextmenu',e=>e.preventDefault());
   // Zoom pinch autorisé — pas de preventDefault sur multi-touch
   // Service Worker — fonctionnement hors ligne + mise à jour automatique
   if('serviceWorker' in navigator){
-    const appVer=document.querySelector('meta[name="app-version"]')?.content||'0';
+    const appVer=$q<HTMLMetaElement>('meta[name="app-version"]')?.content||'0';
     const swCode=`// ─────────────────────────────────────────────────────────────────
 //  ScoreTrack — Service Worker
 //  ⚠️  Incrémenter CACHE_VERSION à chaque déploiement

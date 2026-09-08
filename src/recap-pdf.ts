@@ -1,16 +1,19 @@
 import { t } from './i18n';
 import { fmtNum, history, lastGameConfig, players } from './game';
+import { $ } from './dom';
+import type { GameConfig, HistoryGroup, Player } from './types';
 
 // ── EXPORT PDF RÉCAPITULATIF ──────────────────────────────────────
 export function exportRecapPDF(){
   if(!window.jspdf){alert('jsPDF non chargé.');return;}
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  // any : instance jsPDF (librairie CDN sans types embarqués, voir globals.d.ts)
+  const doc: any = new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
 
-  const inclScores   = document.getElementById('pdf-chk-scores').checked;
-  const inclHistory  = document.getElementById('pdf-chk-history').checked;
-  const inclInfo     = document.getElementById('pdf-chk-info').checked;
-  const gameName     = document.getElementById('pdf-game-name').value.trim();
+  const inclScores   = $<HTMLInputElement>('pdf-chk-scores').checked;
+  const inclHistory  = $<HTMLInputElement>('pdf-chk-history').checked;
+  const inclInfo     = $<HTMLInputElement>('pdf-chk-info').checked;
+  const gameName     = $<HTMLInputElement>('pdf-game-name').value.trim();
 
   const pageW = 210, margin = 16, contentW = pageW - margin*2;
   let y = 18;
@@ -59,7 +62,7 @@ export function exportRecapPDF(){
     const now = new Date();
     const dateStr = now.toLocaleDateString(undefined,{day:'2-digit',month:'2-digit',year:'numeric'})
                   + ' ' + now.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'});
-    const cfg = lastGameConfig;
+    const cfg = lastGameConfig as GameConfig; // `lastGameConfig` (game.ts) pas encore typé
     const infoLines = [
       'Date : ' + dateStr,
       t('labelPlayers') + ' : ' + cfg.numPlayers,
@@ -109,7 +112,7 @@ export function exportRecapPDF(){
     y += 4;
 
     // Trier : gagnants d'abord, puis éliminés par rang, puis actifs
-    const sorted = players.map((p,i)=>({p,i})).sort((a,b)=>{
+    const sorted = (players as Player[]).map((p,i)=>({p,i})).sort((a,b)=>{
       if(a.p.winner&&!b.p.winner)return -1;
       if(!a.p.winner&&b.p.winner)return 1;
       if(a.p.winner&&b.p.winner)return (a.p.winRank||99)-(b.p.winRank||99);
@@ -159,8 +162,8 @@ export function exportRecapPDF(){
     doc.text(t('recapTitle') + ' — '+t('btnRecap'), margin, y);
     y += 6;
 
-    players.forEach((p,pi)=>{
-      const groups=history.filter(h=>h.playerIdx===pi).sort((a,b)=>a.rank-b.rank);
+    (players as Player[]).forEach((p,pi)=>{
+      const groups=(history as HistoryGroup[]).filter(h=>h.playerIdx===pi).sort((a,b)=>a.rank-b.rank);
       if(!groups.length)return;
 
       // Nom du joueur

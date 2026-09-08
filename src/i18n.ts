@@ -1,8 +1,24 @@
 import { LANGS, T } from './i18n/translations';
+import type { LangCode, TranslationKey } from './i18n/translations';
 import { checkGoBtn, renderPresets, renderThemeGrid, settings } from './game';
+import { $opt } from './dom';
+import type { Settings } from './types';
+
+/** Clé de traduction : une clé connue (autocomplétion) ou une clé construite
+ *  dynamiquement (`nameKey` des presets et des thèmes) ; `t()` renvoie la clé
+ *  elle-même quand elle est inconnue. */
+export type TKey = TranslationKey | (string & {});
+
+/** Bouton portant l'état d'un libellé « flash » (`_flashBtnLabel`). */
+interface FlashBtn extends HTMLElement {
+  _flashTimer?: number | null;
+  _flashOrig?: string | null;
+}
 
 // ── i18n state & helpers ──────────────────────────────────────────
-export function _detectLang(){
+/** Langue du navigateur ; renvoie un code de langue (voir rapport : « no » n'est
+ *  pas dans `LangCode`, d'où le type `string`). */
+export function _detectLang(): string {
   const nav=(navigator.language||navigator.userLanguage||'en').toLowerCase();
   const avail=['en','fr','es','de','it','pt','nl','pl','ru','zh','ja','ko','ar','tr','sv','da','fi','no'];
   if(avail.includes(nav)) return nav;
@@ -12,19 +28,22 @@ export function _detectLang(){
   if(prefix==='zh') return 'zh';
   return 'en';
 }
-export let currentLang = 'en';
+export let currentLang: LangCode = 'en';
 
-export function t(key){ return (T[currentLang]&&T[currentLang][key]) || T['en'][key] || key; }
+export function t(key: TKey): string {
+  const k = key as TranslationKey; // clé dynamique éventuelle : le repli `|| key` couvre l'absence
+  return (T[currentLang]&&T[currentLang][k]) || T['en'][k] || key;
+}
 
-export function applyLang(code){
+export function applyLang(code: LangCode){
   currentLang = code;
   document.documentElement.lang = code;
   const lang = LANGS.find(l=>l.code===code) || LANGS[0];
   // Bouton drapeau
-  const btn = document.getElementById('lang-flag-btn');
-  if(btn) btn.firstChild.textContent = lang.flag;
-  const btnP = document.getElementById('lang-flag-btn-privacy');
-  if(btnP) btnP.firstChild.textContent = lang.flag;
+  const btn = $opt('lang-flag-btn');
+  if(btn) (btn.firstChild as ChildNode).textContent = lang.flag;
+  const btnP = $opt('lang-flag-btn-privacy');
+  if(btnP) (btnP.firstChild as ChildNode).textContent = lang.flag;
 
   // dir RTL pour arabe
   document.documentElement.setAttribute('dir', code==='ar' ? 'rtl' : 'ltr');
@@ -109,15 +128,15 @@ export function applyLang(code){
   _setText('btn-privacy-accept',   t('btnGotIt'));
   renderThemeGrid();
 }
-export function _setText(id, val, isHtml=false){
-  const el=document.getElementById(id); if(!el) return;
+export function _setText(id: string, val: string, isHtml=false){
+  const el=$opt(id); if(!el) return;
   if(isHtml) el.innerHTML=val; else el.textContent=val;
 }
-export function _setBtnLabel(id,v){const el=document.getElementById(id);if(!el)return;const lbl=el.querySelector('.btn-label');if(lbl)lbl.innerHTML=v;else el.textContent=v;}
-export function _getFooterBtn(e){const t=e?.currentTarget||e?.target;if(!t)return null;return(typeof t.closest==='function'?t.closest('button'):null)||t;}
+export function _setBtnLabel(id: string, v: string){const el=$opt(id);if(!el)return;const lbl=el.querySelector('.btn-label');if(lbl)lbl.innerHTML=v;else el.textContent=v;}
+export function _getFooterBtn(e?: Event | null): HTMLElement | null {const t=(e?.currentTarget||e?.target) as HTMLElement | null;if(!t)return null;return(typeof t.closest==='function'?t.closest('button'):null)||t;}
 export function updateRestoreBtn(){
-  const btnR=document.getElementById('btn-restoredefault');
-  const btnC=document.getElementById('btn-cleardefault');
+  const btnR=$opt<FlashBtn>('btn-restoredefault');
+  const btnC=$opt<FlashBtn>('btn-cleardefault');
   if(btnR){
     const lbl=btnR.querySelector('.btn-label');
     if(lbl){
@@ -133,7 +152,7 @@ export function updateRestoreBtn(){
     if(lblC){const newLabelC=settings.defSaved?t('btnClearDefault'):t('btnNoClear');if(btnC._flashTimer){btnC._flashOrig=newLabelC;}else{lblC.innerHTML=newLabelC;}}
   }
 }
-export function _flashBtnLabel(btn,msg,ms){
+export function _flashBtnLabel(btn: FlashBtn | null, msg: string, ms?: number){
   if(!btn)return;
   const lbl=btn.querySelector('.btn-label')||btn;
   if(btn._flashTimer){clearTimeout(btn._flashTimer);}
@@ -144,15 +163,15 @@ export function _flashBtnLabel(btn,msg,ms){
     btn._flashTimer=null;
     btn._flashOrig=null;
     if(btn.id==='btn-restoredefault') updateRestoreBtn();
-    else lbl.innerHTML=orig;
+    else lbl.innerHTML=orig as string; // `_flashOrig` a été posé avant le minuteur
   },ms||1500);
 }
-export function _setLabel(id, val){
-  const el=document.getElementById(id); if(!el) return;
+export function _setLabel(id: string, val: string){
+  const el=$opt(id); if(!el) return;
   el.textContent=val;
 }
-export function _setPlaceholder(id, val){
-  const el=document.getElementById(id); if(!el) return;
+export function _setPlaceholder(id: string, val: string){
+  const el=$opt<HTMLInputElement>(id); if(!el) return;
   el.placeholder=val;
 }
 export function _checkGoBtn_refresh(){
@@ -163,7 +182,7 @@ export function _checkGoBtn_refresh(){
 }
 
 export function renderLangDropdown(){
-  const dd=document.getElementById('lang-dropdown');
+  const dd=$opt('lang-dropdown');
   if(!dd)return;
   dd.innerHTML='';
   LANGS.forEach(l=>{
@@ -175,7 +194,7 @@ export function renderLangDropdown(){
       closeLangDropdown();
       if(l.code===currentLang)return;
       currentLang=l.code;
-      settings.lang=l.code;
+      (settings as Settings).lang=l.code;
       try{localStorage.setItem('scoretrack_settings',JSON.stringify(settings));}catch(err){}
       applyLang(l.code);
       renderPresets();
@@ -184,7 +203,7 @@ export function renderLangDropdown(){
   });
 }
 export function toggleLangDropdown(){
-  const dd=document.getElementById('lang-dropdown');
+  const dd=$opt('lang-dropdown');
   if(!dd)return;
   if(dd.classList.contains('hidden')){
     renderLangDropdown();
@@ -195,13 +214,13 @@ export function toggleLangDropdown(){
   }
 }
 export function closeLangDropdown(){
-  document.getElementById('lang-dropdown')?.classList.add('hidden');
+  $opt('lang-dropdown')?.classList.add('hidden');
 }
-export function closeLangDropdownOutside(e){
-  if(!document.getElementById('lang-picker')?.contains(e.target)) closeLangDropdown();
+export function closeLangDropdownOutside(e: MouseEvent){
+  if(!$opt('lang-picker')?.contains(e.target as Node | null)) closeLangDropdown();
 }
 export function renderLangDropdownPrivacy(){
-  const dd=document.getElementById('lang-dropdown-privacy');
+  const dd=$opt('lang-dropdown-privacy');
   if(!dd)return;
   dd.innerHTML='';
   LANGS.forEach(l=>{
@@ -213,7 +232,7 @@ export function renderLangDropdownPrivacy(){
       closeLangDropdownPrivacy();
       if(l.code===currentLang)return;
       currentLang=l.code;
-      settings.lang=l.code;
+      (settings as Settings).lang=l.code;
       try{localStorage.setItem('scoretrack_settings',JSON.stringify(settings));}catch(err){}
       applyLang(l.code);
     });
@@ -221,7 +240,7 @@ export function renderLangDropdownPrivacy(){
   });
 }
 export function toggleLangDropdownPrivacy(){
-  const dd=document.getElementById('lang-dropdown-privacy');
+  const dd=$opt('lang-dropdown-privacy');
   if(!dd)return;
   if(dd.classList.contains('hidden')){
     renderLangDropdownPrivacy();
@@ -232,11 +251,13 @@ export function toggleLangDropdownPrivacy(){
   }
 }
 export function closeLangDropdownPrivacy(){
-  document.getElementById('lang-dropdown-privacy')?.classList.add('hidden');
+  $opt('lang-dropdown-privacy')?.classList.add('hidden');
 }
-export function closeLangDropdownPrivacyOutside(e){
-  if(!document.getElementById('lang-picker-privacy')?.contains(e.target)) closeLangDropdownPrivacy();
+export function closeLangDropdownPrivacyOutside(e: MouseEvent){
+  if(!$opt('lang-picker-privacy')?.contains(e.target as Node | null)) closeLangDropdownPrivacy();
 }
 
 // Changement de langue depuis un autre module (la liaison d'export est en lecture seule).
-export function setCurrentLang(code){ currentLang=code; }
+// Le code vient de localStorage ou de `_detectLang()` (chaîne libre) : cast vers `LangCode`,
+// `t()` retombe sur `en` si la table n'existe pas.
+export function setCurrentLang(code: string){ currentLang=code as LangCode; }
