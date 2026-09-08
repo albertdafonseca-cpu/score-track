@@ -1,9 +1,11 @@
 import * as THREE from 'three';
 import { t } from '../i18n';
+import { $opt } from '../dom';
+import type { CubeTarget } from './types';
 
-export function _themeColorHex(varName, fallback){
+export function _themeColorHex(varName: string, fallback: number): number {
   try{
-    var probe=document.getElementById('game-screen')||document.body;
+    var probe=$opt('game-screen')||document.body;
     var c=getComputedStyle(probe).getPropertyValue(varName).trim();
     if(!c) return fallback;
     // normaliser en nombre hex 0xRRGGBB
@@ -19,13 +21,13 @@ export function _themeColorHex(varName, fallback){
 }
 
 // texture d'une face : points seulement, fond transparent (pour plaque posée sur le cube coloré)
-export function _dieFaceTexture(v, bodyHex, pipHex){
+export function _dieFaceTexture(v: number, bodyHex: number, pipHex: number): THREE.CanvasTexture {
   var c=document.createElement('canvas'); c.width=c.height=256;
-  var x=c.getContext('2d');
+  var x=c.getContext('2d') as CanvasRenderingContext2D; // contexte 2D toujours disponible sur un canvas neuf (comme avant : erreur sinon)
   var pip='#'+pipHex.toString(16).padStart(6,'0');
   // fond transparent : on laisse voir le corps du dé
   var o=0.28;
-  var M={1:[[0,0]],2:[[-o,o],[o,-o]],3:[[-o,o],[0,0],[o,-o]],
+  var M: Record<number, number[][]>={1:[[0,0]],2:[[-o,o],[o,-o]],3:[[-o,o],[0,0],[o,-o]],
     4:[[-o,o],[o,o],[-o,-o],[o,-o]],5:[[-o,o],[o,o],[0,0],[-o,-o],[o,-o]],
     6:[[-o,o],[o,o],[-o,0],[o,0],[-o,-o],[o,-o]]};
   (M[v]||[]).forEach(function(pp){
@@ -41,7 +43,7 @@ export function _dieFaceTexture(v, bodyHex, pipHex){
 
 // rotation cible pour amener la valeur v face caméra (+Z)
 // faces BoxGeometry: [+X,-X,+Y,-Y,+Z,-Z] -> on assigne [3,4,1,6,5,2] (opposées = 7)
-export var _DIE_TARGET={
+export var _DIE_TARGET: Record<number, CubeTarget>={
   5:{x:0,y:0},                    // +Z déjà face (peinte 5)
   2:{x:0,y:Math.PI},              // -Z (peinte 2)
   3:{x:0,y:-Math.PI/2},           // +X (peinte 3)
@@ -50,7 +52,7 @@ export var _DIE_TARGET={
   6:{x:-Math.PI/2,y:0}            // +Y (peinte 1) -> amène la valeur 6 : fix 1<->6
 };
 // d3 : faces valant 1,2,3,1,2,3 -> rotation amenant une face de la valeur voulue face caméra
-export var _DIE_TARGET_D3={
+export var _DIE_TARGET_D3: Record<number, CubeTarget>={
   1:{x:0,y:-Math.PI/2},           // +X porte 1
   2:{x:0,y:Math.PI/2},            // -X porte 2
   3:{x:Math.PI/2,y:0}             // +Y porte 3 (rotX +PI/2, vérifié)
@@ -59,13 +61,13 @@ export var _DIE_TARGET_D3={
 // Construit une géométrie de cube à coins arrondis.
 // 6 groupes (0..5) = les 6 faces plates (pour les textures de points),
 // groupe 6 = les bords/coins arrondis (matériau corps uni).
-export function makeRoundedBoxGeometry(size, radius, curveSeg){
+export function makeRoundedBoxGeometry(size: number, radius: number, curveSeg: number): THREE.BoxGeometry {
   var h=size/2;
   // On part d'un BoxGeometry très subdivisé et on "arrondit" en projetant
   // les sommets vers l'intérieur d'un cube à coins sphériques.
   var seg=Math.max(2, curveSeg*2);
   var geo=new THREE.BoxGeometry(size,size,size,seg,seg,seg);
-  var pos=geo.attributes.position;
+  var pos=geo.attributes.position as THREE.BufferAttribute;
   var inner=h-radius; // demi-taille de la zone plate
   var v=new THREE.Vector3();
   for(var i=0;i<pos.count;i++){
@@ -85,7 +87,7 @@ export function makeRoundedBoxGeometry(size, radius, curveSeg){
   return geo;
 }
 
-export function _makeDie(size, bodyHex, pipHex, faceValsArg){
+export function _makeDie(size: number, bodyHex: number, pipHex: number, faceValsArg?: number[]): THREE.Group {
   // dé légèrement plus grand + coins arrondis
   var S=2.2, R=0.42;
   var faceVals=faceValsArg || [3,4,1,6,5,2]; // +X,-X,+Y,-Y,+Z,-Z (d6 par défaut)
