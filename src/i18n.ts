@@ -20,12 +20,11 @@ interface FlashBtn extends HTMLElement {
  *  pas dans `LangCode`, d'où le type `string`). */
 export function _detectLang(): string {
   const nav=(navigator.language||navigator.userLanguage||'en').toLowerCase();
-  const avail=['en','fr','es','de','it','pt','nl','pl','ru','zh','ja','ko','ar','tr','sv','da','fi','no'];
+  const avail=['en','fr','es','de','it','pt','nl','pl','ru','zh','ja','ko','ar','tr','sv','da','fi','nb'];
   if(avail.includes(nav)) return nav;
   const prefix=nav.split('-')[0];
   if(avail.includes(prefix)) return prefix;
-  if(prefix==='nb'||prefix==='nn') return 'no';
-  if(prefix==='zh') return 'zh';
+  if(prefix==='no'||prefix==='nn') return 'nb'; // norvégien : la table est « nb »
   return 'en';
 }
 export let currentLang: LangCode = 'en';

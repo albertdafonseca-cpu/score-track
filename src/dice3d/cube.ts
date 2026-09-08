@@ -86,7 +86,7 @@ export function makeRoundedBoxGeometry(size: number, radius: number, curveSeg: n
   return geo;
 }
 
-export function _makeDie(size: number, bodyHex: number, pipHex: number, faceValsArg?: number[]): THREE.Group {
+export function _makeDie(bodyHex: number, pipHex: number, faceValsArg?: number[]): THREE.Group {
   // dé légèrement plus grand + coins arrondis
   var S=2.2, R=0.42;
   var faceVals=faceValsArg || [3,4,1,6,5,2]; // +X,-X,+Y,-Y,+Z,-Z (d6 par défaut)

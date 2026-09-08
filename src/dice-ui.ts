@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { currentLang, t } from './i18n';
+import { currentLang } from './i18n';
 import { adjust, players } from './game';
 import { $, $opt, $q } from './dom';
 import type { DiceConfig, DiceRoll, Player } from './types';
@@ -39,7 +39,7 @@ export function diceT(key: string): string {
         close:'Fechar',back:'← Voltar',hist:'Histórico',pickAdd:'Adicionar a qual jogador?',
         pickSub:'Remover de qual jogador?',empty:'Nenhum lançamento',sum:'Total',percent:'Porcentagem',type:'Tipo'}
   };
-  return (L[lang]||L.fr)[key];
+  return (L[lang]||L.fr)[key] ?? L.fr[key] ?? key;
 }
 
 export function openDice(): void {
@@ -201,7 +201,7 @@ export function diceCountStep(d: number): void {
 }
 
 
-export var _diceThree: DiceThreeState = { dice:[], raf:null, active:false };
+export var _diceThree: DiceThreeState = { dice:[] };
 
 
 export function diceBuild3D(container: HTMLElement, faceVal: number, sizePx?: number, dieIdx?: number): Die3D {
@@ -215,7 +215,7 @@ export function diceBuild3D(container: HTMLElement, faceVal: number, sizePx?: nu
   var camDist: number;
   var isCube=(type===6||type===3);
   // solides normalisés au même rayon -> une seule distance (plus proche = plus gros)
-  if(isCube) camDist=4.4; else camDist=4.4; // marge suffisante : dé plus grand ET entier
+  camDist=4.4; // marge suffisante : dé plus grand ET entier
   var camPos: THREE.Vector3;
   if(isCube) camPos=new THREE.Vector3(0,0,camDist);
   else if(type===2) camPos=new THREE.Vector3(0,camDist*0.62,camDist*0.72); // pièce : plus de plongée pour voir la tranche
@@ -378,32 +378,6 @@ export function diceRenderPreview(): void {
 
 export var _diceRolling=false; var _diceRollGuard: number | null=null;
 export var _diceRolled=false;   // un lancer a-t-il eu lieu depuis l'ouverture ? (masque l'aperçu)
-// rotation finale du cube pour amener la face voulue vers l'avant (face f1=avant)
-export var DIE3D_FACE_ROT: Record<number, { x: number; y: number }>={
-  1:{x:0,y:0}, 6:{x:0,y:180}, 3:{x:0,y:-90}, 4:{x:0,y:90}, 2:{x:-90,y:0}, 5:{x:90,y:0}
-};
-export function die3dPips(v: number): string {
-  // retourne les classes de position de pips pour la valeur v
-  var map: Record<number, string[]>={
-    1:['p-mc'],
-    2:['p-tl','p-br'],
-    3:['p-tl','p-mc','p-br'],
-    4:['p-tl','p-tr','p-bl','p-br'],
-    5:['p-tl','p-tr','p-mc','p-bl','p-br'],
-    6:['p-tl','p-tr','p-ml','p-mr','p-bl','p-br']
-  };
-  return (map[v]||[]).map(function(c){return '<span class="pip '+c+'"></span>';}).join('');
-}
-export function buildDie3d(finalVal: number): HTMLDivElement {
-  var d=document.createElement('div'); d.className='die3d';
-  // 6 faces
-  [1,2,3,4,5,6].forEach(function(n){
-    var f=document.createElement('div'); f.className='face f'+n;
-    f.innerHTML=die3dPips(n);
-    d.appendChild(f);
-  });
-  return d;
-}
 
 export function rollDice(): void {
   if(_diceRolling)return;
@@ -554,7 +528,7 @@ export function dicePickPlayer(mode: string): void {
     if(p.eliminated||p.winner)return;
     var b=document.createElement('button'); b.className='dice-player-btn';
     var num=document.createElement('span'); num.className='num'; num.textContent=String(i+1);
-    var nm=document.createElement('span'); nm.textContent=p.playerName||((typeof t==='function'?'':'')+'#'+(i+1));
+    var nm=document.createElement('span'); nm.textContent=p.playerName||('#'+(i+1));
     var sc=document.createElement('span'); sc.className='sc'; sc.textContent=String(p.score);
     b.appendChild(num); b.appendChild(nm); b.appendChild(sc);
     b.onclick=function(){ diceApplyToPlayer(i, mode); };

@@ -68,7 +68,6 @@ export let modalPlayerIdx=-1,modalValue='0',modalSign: 1|-1=1;
 export let settings: Settings={theme:'cyber',defPlayers:0,defStart:0,defMax:0,defNeg:false,defObjectifMode:'none',defObjectifVal:null,defSaved:false};
 export let selectedTheme='cyber',defPlayers=0,defStart=-1,defMax=0,defNeg=false;
 export let elimPending=-1; // index joueur en attente de confirmation d'élimination
-export let winPending=-1;
 export let lastGameConfig: GameConfig|null=null; // réglages de la dernière partie lancée
 
 // ── FORMATAGE ─────────────────────────────────────────────────────
@@ -163,8 +162,8 @@ export function highlightMatchingPreset(){
 export function applyTheme(id: string){
   document.documentElement.setAttribute('data-theme',id==='cyber'?'':id);
   selectedTheme=id;
-  const colors: Record<string,string>={cyber:'#020d12',dark:'#0a0a0f','neon-pink':'#0d0010',arcade:'#0a0800',nature:'#051208',sunset:'#120508',ocean:'#020810',mono:'#080808','ldm-day':'#f5f0e8',ldm:'#0d0a12'};
-  const c=colors[id]||'#020d12';
+  // couleur de la barre d'état = fond du thème (source unique : THEMES)
+  const c=THEMES.find(th=>th.id===id)?.bg||'#020d12';
   const m=$opt<HTMLMetaElement>('meta-theme-color');if(m)m.content=c;
   // met à jour les couleurs des dés si le lanceur est ouvert (elles sont cuites dans
   // les matériaux 3D à la construction -> il faut reconstruire).
@@ -334,7 +333,6 @@ export function applyScreenMaterial(themeId: string){
   const blend=cs.getPropertyValue('--mat-blend').trim()||'soft-light';
   const op=cs.getPropertyValue('--mat-op').trim()||'0';
   const bg=cs.getPropertyValue('--bg').trim();
-  const bg2=cs.getPropertyValue('--bg2').trim();
   document.body.removeChild(probe);
   screen.style.setProperty('--screen-mat', mat||'none');
   screen.style.setProperty('--screen-mat-blend', blend);
@@ -348,7 +346,6 @@ export function applyScreenMaterial(themeId: string){
 export function selectPlayer(n: number){numPlayers=n;$$<HTMLElement>('#players-grid .player-chip').forEach(c=>{c.classList.toggle('on',parseInt(c.textContent!)===n);});checkGoBtn();}
 export function selectStartPreset(v: number){
   startPoints=v;
-  const known=[0,10,20,40,50,100];
   const chip=$q<HTMLElement>(`#start-presets .points-chip[data-val="${v}"]`);
   $$<HTMLElement>('#start-presets .points-chip').forEach(c=>c.classList.remove('on'));
   if(chip){chip.classList.add('on');$<HTMLInputElement>('points-custom').value='';}
@@ -370,7 +367,6 @@ export function selectObjectif(mode: ObjectifMode){
   ['none','elim','win'].forEach(m=>{
     $('obj-'+m).classList.toggle('on',m===mode);
   });
-  const inp=$('objectif-input');
   const custom=$<HTMLInputElement>('objectif-custom');
   const chips=$$<HTMLElement>('#objectif-presets .points-chip');
   if(mode==='none'){
@@ -457,7 +453,7 @@ export function setObjectifFromPreset(mode: ObjectifMode,val: number|null|undefi
   const custom=$<HTMLInputElement>('objectif-custom');
   custom.disabled=false;
   if(mode==='none'){
-    custom.value='';custom.placeholder='Valeur…';
+    custom.value='';custom.placeholder=t('placeholderOther');
   } else {
     custom.placeholder=t('placeholderOther');
     if(val!==null&&val!==undefined){
@@ -1097,7 +1093,6 @@ export function updateDisplay(i: number,zone: HTMLElement|null|undefined,delta: 
     if((winPoints>=startPoints&&p.score>=winPoints)||(winPoints<startPoints&&p.score<=winPoints)){
       const winnerCount = players.filter(pl=>pl.winner).length;
       // Snapshot AVANT modification — score précédent via undo stack
-      const _snapScore=p.score, _snapRawScore=p.rawScore;
       const _snapHistory=history.map(h=>({...h, entries:[...h.entries]}));
       const _snapRankCounter=rankCounter;
       rankCounter++;p.winner=true;p.winRank=winnerCount+1;
@@ -1270,7 +1265,7 @@ export function openScoreModal(pi: number, forceRot?: CardRot){
   const openGroup=history.find(h=>h.playerIdx===pi&&h.open);
   if(openGroup){openGroup.open=false;if(groupTimers[pi]){clearTimeout(groupTimers[pi]);delete groupTimers[pi];}}
   modalPlayerIdx=pi;modalValue='0';modalSign=bloquerMode==='max'?-1:1;
-  $('score-modal-player').textContent=(p.playerName||`Joueur ${pi+1}`)+' — '+fmtNum(p.score);
+  $('score-modal-player').textContent=(p.playerName||`${t('player')} ${pi+1}`)+' — '+fmtNum(p.score);
   updateModalDisplay();
   setSign(modalSign);
   // Orienter : forcé par le swipe, ou rotation de la carte pour l'appui long
@@ -1352,7 +1347,6 @@ export function openScoreModal(pi: number, forceRot?: CardRot){
     // En mode paysage PWA, la safe-area du côté physique du modal réduit la largeur disponible
     // isLeft → bord droit physique = safe-area-right ; isRight → bord gauche = safe-area-left
     const safeEdge = isLeft ? safeR : safeL;
-    const safeOpp  = isLeft ? safeL : safeR;
 
     // Largeur disponible physique après safe-areas = vw - safeL - safeR
     const physW = vw - safeL - safeR;
@@ -1688,7 +1682,7 @@ export function confirmEndgame(){
     renderGame(); saveGame();
     window._afterWinAnim=function(){
       $('winner-name').textContent=t('winner');
-      $('winner-sub').textContent=(p.playerName||'')+(p.playerName?' · ':'')+fmtNum(p.finalScore||p.rawScore||p.score)+' pts';
+      $('winner-sub').textContent=(p.playerName||'')+(p.playerName?' · ':'')+fmtNum(p.finalScore ?? p.rawScore ?? p.score)+' pts';
       showWinnerModal(true);
       localStorage.removeItem('scoretrack_save');
       window._afterWinAnim=null;
@@ -1697,8 +1691,7 @@ export function confirmEndgame(){
   }
 
   if(eg.type==='lastLoser'){
-    const p=players[eg.winnerIdx];
-    const loser=players[eg.loserIdx!];
+    const loser=players[eg.loserIdx];
     loser.finalScore=(loser.rawScore!==undefined)?loser.rawScore:loser.score;
     rankCounter++;loser.eliminated=true;loser.elimRank=rankCounter;
     renderGame(); saveGame();
@@ -1706,12 +1699,12 @@ export function confirmEndgame(){
     // Après l'anim finisher (ou win si champion), lancer l'élim
     const afterWin=function(){
       window._afterWinAnim=null; window._afterFinAnim=null;
-      playElimAnim(eg.loserIdx!);
+      playElimAnim(eg.loserIdx);
       window._afterElimAnim=function(){
-        const loserName=loser.playerName||(t('player')+' '+(eg.loserIdx!+1));
+        const loserName=loser.playerName||(t('player')+' '+(eg.loserIdx+1));
         $('winner-icon').textContent='💀';
         $('winner-name').textContent=loserName;
-        $('winner-sub').textContent=fmtNum(loser.finalScore||loser.rawScore||loser.score)+' pts';
+        $('winner-sub').textContent=fmtNum(loser.finalScore ?? loser.rawScore ?? loser.score)+' pts';
         $('winner-modal').classList.remove('hidden');
         localStorage.removeItem('scoretrack_save');
         window._afterElimAnim=null;
@@ -1742,7 +1735,6 @@ export function showRecap(){
   players.forEach((p,pi)=>{
     const groups=history.filter(h=>h.playerIdx===pi).sort((a,b)=>a.rank-b.rank);
     if(!groups.length&&!p.eliminated&&!p.winner)return;
-    const total=groups.reduce((s,g)=>s+g.entries.reduce((ss,e)=>ss+e.delta,0),0);
     const modeUniqueWinnerRecap = !!(singleWinner || lastLoser || (elimPoints!==null));
     const multiWin=players.filter(pl=>pl.winner).length>1;
     const isFinisherMode = multiWin || !modeUniqueWinnerRecap;
@@ -1790,6 +1782,8 @@ export function startNewGameSameSetup(){
     startPoints  = cfg.startPoints;
     bloquerMode  = cfg.bloquerMode || 'none';
     allowNeg     = cfg.allowNeg || false;
+    singleWinner = cfg.singleWinner || false;
+    lastLoser    = cfg.lastLoser || false;
     objectifMode = cfg.objectifMode || 'none';
     elimPoints   = cfg.objectifMode === 'elim' ? (cfg.objectifVal ?? null) : null;
     winPoints    = cfg.objectifMode === 'win'  ? (cfg.objectifVal ?? null) : null;

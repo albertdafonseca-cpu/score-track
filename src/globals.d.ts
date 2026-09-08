@@ -4,13 +4,9 @@
 import type { Player } from './types';
 
 /** Fin de partie en attente de confirmation (vainqueur unique / dernier perdant). */
-export interface PendingEndgame {
-  type: 'singleWinner' | 'lastLoser';
-  winnerIdx: number;
-  loserIdx?: number;
-  /** annule la fin de partie et restaure l'état du joueur */
-  _cancel: () => void;
-}
+export type PendingEndgame =
+  | { type: 'singleWinner'; winnerIdx: number; /** annule la fin de partie et restaure l'état du joueur */ _cancel: () => void }
+  | { type: 'lastLoser'; winnerIdx: number; loserIdx: number; _cancel: () => void };
 
 /** État d'un joueur avant la dernière modification (pour annuler une fin de partie). */
 export interface LastAdjustPrev {

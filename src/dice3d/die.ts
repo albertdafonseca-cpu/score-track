@@ -94,7 +94,7 @@ export function dieAssignValues(faces: DieFace[], N: number): void {
     v++;
   });
 }
-export function buildNumberedDie(geo: THREE.BufferGeometry, N: number, bodyHex: number, numHex: number, digitSize?: number, bodyGeoOverride?: THREE.BufferGeometry, plateOffset?: number, labels?: Record<number, string>): DieGroup {
+export function buildNumberedDie(geo: THREE.BufferGeometry, N: number, bodyHex: number, numHex: number, bodyGeoOverride?: THREE.BufferGeometry, plateOffset?: number, labels?: Record<number, string>): DieGroup {
   var group=new THREE.Group() as DieGroup;
   labels=labels||{}; // libellé optionnel par valeur (ex. d10 : {10:'0'} ; d100 dizaines : {1:'10',...,10:'00'})
   // corps affiché : override si fourni (solide chanfreiné), sinon la géométrie brute
@@ -108,7 +108,6 @@ export function buildNumberedDie(geo: THREE.BufferGeometry, N: number, bodyHex: 
   group.add(new THREE.Mesh(bodyGeo,mat));
   // faces/chiffres toujours extraits de la géométrie nette (geo)
   var faces=dieExtractFaces(geo); dieAssignValues(faces,N);
-  var dsBase=digitSize||0.5;
   var poff=(typeof plateOffset==='number')?plateOffset:0.012; // offset chiffre le long de la normale
   faces.forEach(function(f){
     if(f.value>N) return;
@@ -335,12 +334,6 @@ export function _trapezoGeo(): ConvexGeometry {
     pts.push(new THREE.Vector3(rTop*Math.cos(a1),zOff,rTop*Math.sin(a1)));
     pts.push(new THREE.Vector3(rTop*Math.cos(a2),-zOff,rTop*Math.sin(a2)));}
   return new ConvexGeometry(pts);
-}
-// taille de chiffre par type (faces plus petites => chiffre plus petit)
-export function _digitSize(type: number): number {
-  if(type<=4)return 0.72; if(type<=8)return 0.54; if(type<=12)return 0.48;
-  if(type<=20)return 0.44; if(type<=30)return 0.38; if(type<=48)return 0.34;
-  if(type<=60)return 0.31; return 0.27; // d120 relevé 0.22 -> 0.27 (lisibilité)
 }
 
 // Met à l'échelle une géométrie pour que son rayon englobant = targetR.
@@ -620,14 +613,14 @@ export var _D4_YAW=30;   // d4 : rotation autour de la pointe (0 = face devant, 
 export function buildDieByType(type: number, bodyHex: number, numHex?: number, variant?: string): DieGroup {
   if(type===6){
     // cube arrondi à pips (réutilise _makeDie existant du fichier hôte)
-    var g=_makeDie(2, bodyHex, numHex||0xffffff) as DieGroup;
+    var g=_makeDie(bodyHex, numHex||0xffffff) as DieGroup;
     // wrapper faces pour cohérence (6 faces, valeurs via _DIE_TARGET)
     g.userData.faces=null; g.userData.N=6; g.userData.type=6; g.userData.special='cube';
     return g;
   }
   if(type===3){
     // d3 = cube à pips dont les 6 faces valent 1,2,3,1,2,3 (perspective parfaite du d6)
-    var g3=_makeDie(2, bodyHex, numHex||0xffffff, [1,2,3,1,2,3]) as DieGroup;
+    var g3=_makeDie(bodyHex, numHex||0xffffff, [1,2,3,1,2,3]) as DieGroup;
     g3.userData.faces=null; g3.userData.N=3; g3.userData.type=3; g3.userData.special='cube';
     return g3;
   }
@@ -640,8 +633,6 @@ export function buildDieByType(type: number, bodyHex: number, numHex?: number, v
   var geo=dieGeometryFor(type)!; // null seulement pour le d6, traité ci-dessus
   var N=(type===100)?10:type;
   // normalise la taille du solide (rayon englobant commun) AVANT extraction des faces
-  var _r0=1; geo.computeBoundingSphere(); if(geo.boundingSphere) _r0=geo.boundingSphere.radius||1;
-  var _s=DICE_TARGET_R/_r0;
   _normalizeGeoRadius(geo, DICE_TARGET_R);
   // corps affiché : même traitement pour TOUS les solides (d4 -> d120) : chanfrein
   // léger des sommets, faces planes, arêtes nettes (rendu validé sur d8/d12/d20/d24/d30).
@@ -653,7 +644,7 @@ export function buildDieByType(type: number, bodyHex: number, numHex?: number, v
     if(variant==='tens'){ for(var k=1;k<=9;k++) labels[k]=k+'0'; labels[10]='00'; }
     else labels[10]='0';
   }
-  var g=buildNumberedDie(geo,N,bodyHex,numHex||0xffffff,_digitSize(N===10?10:N)*_s,bodyOverride,undefined,labels);
+  var g=buildNumberedDie(geo,N,bodyHex,numHex||0xffffff,bodyOverride,undefined,labels);
   // d10 et d100 : numéroter 0..9 (10 -> 0), faces ET plaques (halo/agrandissement du 0)
   if(type===10||type===100){
     g.userData.faces!.forEach(function(f){ if(f.value===10)f.value=0; }); // faces : toujours posées par buildNumberedDie

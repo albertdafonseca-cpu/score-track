@@ -77,8 +77,6 @@ export interface Die3D {
 /** État global des dés 3D persistants du lanceur (dice-ui.ts). */
 export interface DiceThreeState {
   dice: Die3D[];
-  raf: number | null;
-  active: boolean;
 }
 
 /** userData d'une géométrie de corps (_roundedBody / _chamferSolid). */

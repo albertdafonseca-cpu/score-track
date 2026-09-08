@@ -1,5 +1,5 @@
 import { t } from './i18n';
-import { clearAll, elimPoints, fmtNum, lastLoser, players, singleWinner } from './game';
+import { elimPoints, fmtNum, lastLoser, players, singleWinner } from './game';
 import { $, $opt } from './dom';
 import type { Player } from './types';
 
@@ -46,8 +46,7 @@ type RGB = [number, number, number];
   }
 
   // Noise : remplacé par animation CSS (plus léger)
-  let noiseRAF: RafId=null;
-  function startNoise(startTime:number,totalDuration:number,rotDeg:number): void {
+  function startNoise(totalDuration:number): void {
     const canvas=$<HTMLCanvasElement>('elim-anim-noise');
     const ctx=canvas.getContext('2d')!;
     ctx.clearRect(0,0,canvas.width,canvas.height);
@@ -117,7 +116,6 @@ type RGB = [number, number, number];
     if(fragRAF){cancelAnimationFrame(fragRAF);fragRAF=null;}
     const canvas_noise=$opt<HTMLCanvasElement>('elim-anim-noise');
     if(canvas_noise){ canvas_noise.style.animation=''; if(fragCtx) fragCtx.clearRect(0,0,canvas_noise.width,canvas_noise.height); }
-    if(noiseRAF){cancelAnimationFrame(noiseRAF);noiseRAF=null;}
     frags=[];
   }
 
@@ -177,13 +175,6 @@ type RGB = [number, number, number];
     const overlay = $('elim-anim-overlay');
     const skull   = $('elim-anim-skull');
 
-    // Pourcentages : nombre par défaut, chaîne (toFixed) une fois calculés
-    let ox: number|string=50, oy: number|string=50;
-    if(cardEl){
-      const r=cardEl.getBoundingClientRect();
-      ox=((r.left+r.width/2)/window.innerWidth*100).toFixed(1);
-      oy=((r.top+r.height/2)/window.innerHeight*100).toFixed(1);
-    }
 
     overlay.style.animation='';
     overlay.style.opacity='1';
@@ -196,7 +187,7 @@ type RGB = [number, number, number];
     const startT  = performance.now();
     let fragSpawned=false, textShown=false, fadeDone=false;
 
-    startNoise(startT, T_TOTAL, rotDeg);
+    startNoise(T_TOTAL);
 
     function frame(now:number): void {
       const e=now-startT;
@@ -237,8 +228,7 @@ type RGB = [number, number, number];
           overlay.style.clipPath='';
           overlay.style.transition='';
           skull.style.cssText='';
-          // any : reliquat de l'ancienne version à divs DOM — les fragments canvas n'ont pas de « el »
-          frags.forEach(f=>(f as any).el.remove()); frags=[];
+          frags=[];
           resetTexts();
           if(window._afterElimAnim) window._afterElimAnim();
         },650);
@@ -256,7 +246,6 @@ type RGB = [number, number, number];
     if(ov){ ov.style.animation=''; ov.style.display='none'; ov.style.clipPath=''; ov.style.transition=''; }
     const skull=$opt('elim-anim-skull');
     if(skull) skull.style.cssText='';
-    document.querySelectorAll('.frag').forEach(f=>f.remove());
     if(window._afterElimAnim) window._afterElimAnim();
   };
 })();
@@ -567,7 +556,6 @@ playFinAnim = function(playerIdx:number): void {
   _finShown0=false; _finShown1=false; _finShown2=false; _finFadeDone=false;
   var W=_finCanvas.width, H=_finCanvas.height;
   var motoSz=Math.min(W,H)*0.18;
-  var diag=Math.ceil(Math.sqrt(W*W+H*H));
   var gaps=[0,1.8,3.8,6.0,8.5,11.5,15.0];
   var offsets=[-0.07,0.07,-0.05,0.07,-0.07,0.05,-0.55];
   _finMotos=_FIN_RACERS.map(function(r,i): FinMoto {
@@ -704,9 +692,8 @@ var _T0=1300,_T1=580,_T2=780,_T3=920,_T_FADE=5200,_T_TOTAL=5800;
 
 function _frame(now:number): void {
   var e=now-_gStartT;
-  var noRockets=(_gVolleys>=999);
-  if(!noRockets&&_gVolleys<6&&e>_gVolleys*60){ _spawnRocket(_gCanvas.width,_gCanvas.height,_gRot); _gVolleys++; }
-  if(!noRockets&&e>200&&Math.random()<0.12&&_rockets.length<5) _spawnRocket(_gCanvas.width,_gCanvas.height,_gRot);
+  if(_gVolleys<6&&e>_gVolleys*60){ _spawnRocket(_gCanvas.width,_gCanvas.height,_gRot); _gVolleys++; }
+  if(e>200&&Math.random()<0.12&&_rockets.length<5) _spawnRocket(_gCanvas.width,_gCanvas.height,_gRot);
   _tick(_gCtx,_gCanvas.width,_gCanvas.height,_gRot);
   if(e>=_T0&&!_gShown0){ _gShown0=true; _setEl('win-anim-trophy-canvas',1,'scale(1) rotate(0deg)','opacity 0.4s ease, transform 0.85s cubic-bezier(0.2,5.0,0.4,1)'); }
   if(e>=_T1&&!_gShown1){ _gShown1=true; _setEl('win-anim-name',  1,'scale(1)',             'opacity 0.2s, transform 0.5s cubic-bezier(0.34,1.6,0.64,1)'); }
