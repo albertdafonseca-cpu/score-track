@@ -224,7 +224,8 @@ export function dieHighlightFace(group: DieGroup | null | undefined, val: number
   if(pl.userData.dense && group.userData.numHex!==undefined){
     // chiffre cerclé : texture STANDARD (glyphe à taille d'origine, encre ivoire) ;
     // seuls les chiffres non cerclés gardent le glyphe agrandi / l'encre blanche
-    pl.material.map=_numTex(pl.userData.label!, group.userData.numHex, false); pl.material.needsUpdate=true; // label : toujours posé sur les plaques des dés à chiffres
+    // encre BLANCHE comme ses voisins (chiffres denses en blanc pur) : l'ivoire paraissait grisâtre à côté
+    pl.material.map=_numTex(pl.userData.label!, 0xffffff, false); pl.material.needsUpdate=true; // label : toujours posé sur les plaques des dés à chiffres
   }
   // petites faces (gros dés) : on agrandit davantage pour atteindre une largeur lisible
   var rw=group.userData.resultWidth||_RESULT_WIDTH;
@@ -424,6 +425,9 @@ export function _diceNumColor(): number {
   // dés : corps coloré + encre quasi-blanche). Sur corps normalisé [0.16, 0.30],
   // contraste massif et constant (>= 0.55 de luminance), net sans contour.
   var accent=_themeColorHex('--accent',0x9965A9);
+  // Un accent SOMBRE (thèmes clairs : bleu #3355cc, noir…) grisait l'ivoire : on ne
+  // teinte qu'avec un accent lumineux, sinon ivoire pur.
+  if(_hexLum(accent)<0.6) return 0xFFF6E8;
   return _mixHex(0xFFF6E8, accent, 0.12);
 }
 // Encre des dés (chiffres, arêtes, halo) : contraste de LUMINANCE garanti avec le
