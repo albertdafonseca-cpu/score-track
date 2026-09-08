@@ -3,8 +3,11 @@ import type * as THREE from 'three';
 
 /** Face d'un solide, extraite de la géométrie nette (dieExtractFaces). */
 export interface DieFace {
-  /** valeur affichée (1..N ; 0 pour la face « 10 » du d10) */
-  value?: number;
+  /**
+   * valeur affichée (1..N ; 0 pour la face « 10 » du d10). Posée par dieAssignValues
+   * après l'extraction ; tous les consommateurs la supposent présente.
+   */
+  value: number;
   normal: THREE.Vector3;
   center: THREE.Vector3;
   /** accumulateur des centres de triangles (construction) */
@@ -23,12 +26,28 @@ export interface DieFace {
   upRef?: THREE.Vector3;
 }
 
+/** Plaque-chiffre : mesh plan portant la texture du glyphe. */
+export interface PlateUserData {
+  label?: string | number;
+  dense?: boolean;
+  _baseScale?: THREE.Vector3;
+}
+
+/** Mesh d'une plaque-chiffre (plan + matériau basique texturé). */
+export type PlateMesh = THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial> & { userData: PlateUserData };
+
+/** Plaques-chiffres par valeur (clés numériques ; indexables aussi par chaîne via Object.keys). */
+export type DiePlates = Record<string | number, PlateMesh[]>;
+
+/** Anneau du halo de résultat. */
+export type HaloMesh = THREE.Mesh<THREE.RingGeometry, THREE.MeshBasicMaterial>;
+
 /** Données attachées au groupe Three.js d'un dé. */
 export interface DieUserData {
   faces: DieFace[] | null;
   /** plaques-chiffres par valeur (plusieurs pour le d4) */
-  plates?: Record<number, THREE.Mesh[]>;
-  halo?: THREE.Mesh;
+  plates?: DiePlates;
+  halo?: HaloMesh;
   N: number;
   type: number;
   special?: 'cube' | 'coin';
@@ -55,9 +74,47 @@ export interface Die3D {
   raf: number | null;
 }
 
-/** Plaque-chiffre : mesh plan portant la texture du glyphe. */
-export interface PlateUserData {
-  label?: string | number;
-  dense?: boolean;
-  _baseScale?: THREE.Vector3;
+/** État global des dés 3D persistants du lanceur (dice-ui.ts). */
+export interface DiceThreeState {
+  dice: Die3D[];
+  raf: number | null;
+  active: boolean;
+}
+
+/** userData d'une géométrie de corps (_roundedBody / _chamferSolid). */
+export interface BodyGeoUserData {
+  /** true : facettes nettes (chanfrein) ; false : normales explicites (arrondi) */
+  flatShade?: boolean;
+  /** rayon d'arrondi, pour garder les chiffres sur la partie plane des faces */
+  roundR?: number;
+}
+
+/** userData d'une texture-chiffre (dieNumTexture). */
+export interface NumTexUserData {
+  /** encombrement du glyphe en fraction du côté de la plaque */
+  box?: { w: number; h: number };
+}
+
+/** Rotation euler (x, y) amenant une face du cube à pips face caméra. */
+export interface CubeTarget {
+  x: number;
+  y: number;
+}
+
+/** Sommet du solide pendant la construction du corps arrondi (_roundedBody). */
+export interface RoundVert {
+  /** sommet d'origine */
+  p: THREE.Vector3;
+  /** indices des faces incidentes */
+  faces: number[];
+  /** centre de coin (à distance r de tous les plans incidents) ; calculé après collecte */
+  c: THREE.Vector3;
+}
+
+/** Arête du solide pendant la construction du corps arrondi (_roundedBody). */
+export interface RoundEdge {
+  a: string;
+  b: string;
+  /** indices des (deux) faces incidentes */
+  faces: number[];
 }

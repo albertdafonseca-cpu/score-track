@@ -1,8 +1,16 @@
 import { _detectLang, _flashBtnLabel, _getFooterBtn, applyLang, currentLang, setCurrentLang, t, updateRestoreBtn } from './i18n';
 import { playElimAnim, playWinAnim } from './animations';
 import { diceRenderPreview, diceResetPreview, diceUpdateFab } from './dice-ui';
+import { $, $opt, $$, $q } from './dom';
+import type { BloquerMode, CardRot, GameConfig, GamePreset, GameSave, HistoryGroup, ObjectifMode, Player, Settings, Theme, UndoSnapshot } from './types';
 
-export const THEMES=[
+/** Overlay du modal de score : porte l'orientation courante et l'état de glissement. */
+interface ScoreModalEl extends HTMLElement {
+  _modalRot?: CardRot;
+  _dragging?: boolean;
+}
+
+export const THEMES: Theme[]=[
   {id:'cyber',    nameKey:'themeCyberpunk',  bg:'#020d12',a:'#00ffe0',b:'#00bfff'},
   {id:'cyber-light',nameKey:'themeCyberpunkLight', bg:'#e3f6f4',a:'#00a38f',b:'#007aa3'},
   {id:'dark',     nameKey:'themeDark',       bg:'#0a0a0f',a:'#6c63ff',b:'#a78bfa'},
@@ -34,7 +42,7 @@ export const COLORS=[
 ];
 
 // Préréglages de jeux
-export const GAME_PRESETS=[
+export const GAME_PRESETS: GamePreset[]=[
   {nameKey:'presetLdm',   detailKey:'presetLdmDetail',
    players:6, start:40, objectifMode:'elim', objectifVal:0, singleWinner:false, lastLoser:false},
   {nameKey:'presetPoker', detailKey:'presetPokerDetail',
@@ -50,21 +58,21 @@ export const GAME_PRESETS=[
 ];
 
 export let numPlayers=0,startPoints=0,maxPoints=Infinity,allowNeg=false;
-export let elimPoints=null,winPoints=null,objectifMode='none';
-export let bloquerMode='none';
+export let elimPoints: number|null=null,winPoints: number|null=null,objectifMode: ObjectifMode='none';
+export let bloquerMode: BloquerMode='none';
 export let singleWinner=false, lastLoser=false;
 export let rankCounter=0;
-export let players=[],seatOrder=[],undoStack=[],history=[],actionCounter=0,groupTimers={};
+export let players: Player[]=[],seatOrder: number[]=[],undoStack: string[]=[],history: HistoryGroup[]=[],actionCounter=0,groupTimers: Record<number, ReturnType<typeof setTimeout>>={};
 export const GROUP_DELAY=1500;
-export let modalPlayerIdx=-1,modalValue='0',modalSign=1;
-export let settings={theme:'cyber',defPlayers:0,defStart:0,defMax:0,defNeg:false,defObjectifMode:'none',defObjectifVal:null,defSaved:false};
+export let modalPlayerIdx=-1,modalValue='0',modalSign: 1|-1=1;
+export let settings: Settings={theme:'cyber',defPlayers:0,defStart:0,defMax:0,defNeg:false,defObjectifMode:'none',defObjectifVal:null,defSaved:false};
 export let selectedTheme='cyber',defPlayers=0,defStart=-1,defMax=0,defNeg=false;
 export let elimPending=-1; // index joueur en attente de confirmation d'élimination
 export let winPending=-1;
-export let lastGameConfig=null; // réglages de la dernière partie lancée
+export let lastGameConfig: GameConfig|null=null; // réglages de la dernière partie lancée
 
 // ── FORMATAGE ─────────────────────────────────────────────────────
-export function fmtNum(n){
+export function fmtNum(n: number){
   if(Math.abs(n)<1000)return String(n);
   return n.toLocaleString('fr-FR');
 }
@@ -104,7 +112,7 @@ export function loadSettings(){
   applyDefaults(firstRun);
   updateRestoreBtn();
 }
-export function applyDefaults(firstRun){
+export function applyDefaults(firstRun: boolean){
   if(firstRun||!settings.lastGameConfig){
     selectedPresetIdx=0;
     const ldmIdx=GAME_PRESETS.findIndex(p=>p.nameKey==='presetLdm');
@@ -123,7 +131,7 @@ export function applyDefaults(firstRun){
 }
 // Applique un preset par index et le marque visuellement
 export let selectedPresetIdx = -1;
-export function applyPreset(idx){
+export function applyPreset(idx: number){
   const p=GAME_PRESETS[idx];if(!p)return;
   selectedPresetIdx = idx;
   $$<HTMLElement>('.preset-card').forEach(c=>c.classList.remove('on'));
@@ -152,10 +160,10 @@ export function highlightMatchingPreset(){
     card.classList.toggle('on',match);
   });
 }
-export function applyTheme(id){
+export function applyTheme(id: string){
   document.documentElement.setAttribute('data-theme',id==='cyber'?'':id);
   selectedTheme=id;
-  const colors={cyber:'#020d12',dark:'#0a0a0f','neon-pink':'#0d0010',arcade:'#0a0800',nature:'#051208',sunset:'#120508',ocean:'#020810',mono:'#080808','ldm-day':'#f5f0e8',ldm:'#0d0a12'};
+  const colors: Record<string,string>={cyber:'#020d12',dark:'#0a0a0f','neon-pink':'#0d0010',arcade:'#0a0800',nature:'#051208',sunset:'#120508',ocean:'#020810',mono:'#080808','ldm-day':'#f5f0e8',ldm:'#0d0a12'};
   const c=colors[id]||'#020d12';
   const m=$opt<HTMLMetaElement>('meta-theme-color');if(m)m.content=c;
   // met à jour les couleurs des dés si le lanceur est ouvert (elles sont cuites dans
@@ -167,7 +175,7 @@ export function applyTheme(id){
     }
   }catch(e){}
 }
-export function restoreSavedDefaults(e){
+export function restoreSavedDefaults(e: Event){
   // Détecter si aucun réglage n'a encore été sauvegardé
   const btnR=_getFooterBtn(e);
   if(!settings.defSaved){return;} // label déjà 'Nothing to restore' en permanence
@@ -183,7 +191,7 @@ export function restoreSavedDefaults(e){
   checkGoBtn();
   _flashBtnLabel(btnR,t('restored')||'✓ Restauré',1500);
 }
-export function clearSavedDefaults(e){
+export function clearSavedDefaults(e: Event){
   if(!settings.defSaved)return;
   settings={...settings,defPlayers:0,defStart:0,defMax:0,defNeg:false,defObjectifMode:'none',defObjectifVal:null,defSingleWinner:false,defLastLoser:false,defSaved:false};
   defPlayers=0;defStart=0;defMax=0;defNeg=false;
@@ -191,7 +199,7 @@ export function clearSavedDefaults(e){
   updateRestoreBtn();
   _flashBtnLabel(_getFooterBtn(e),t('cleared')||'✓ Effacé',1500);
 }
-export function saveAsDefault(e){
+export function saveAsDefault(e?: Event){
   settings={...settings,defPlayers:numPlayers||0,defStart:startPoints>=0?startPoints:0,defMax:maxPoints===Infinity?0:maxPoints,defNeg:allowNeg,defObjectifMode:objectifMode||'none',defObjectifVal:getObjectifVal(),defSingleWinner:singleWinner||false,defLastLoser:lastLoser||false,defSaved:true};
   try{localStorage.setItem('scoretrack_settings',JSON.stringify(settings));}catch(e2){}
   defPlayers=settings.defPlayers;defStart=settings.defStart;defMax=settings.defMax;defNeg=settings.defNeg;
@@ -217,7 +225,7 @@ export function saveGame(){
 }
 export function restoreGame(){
   try{
-    const s=JSON.parse(localStorage.getItem('scoretrack_save'));
+    const s: GameSave|null=JSON.parse(localStorage.getItem('scoretrack_save') as string);
     if(!s)return;
     // Version 3.3 : vérifier la version du save
     if((s.saveVersion||0) < 33){
@@ -244,10 +252,10 @@ export function discardSave(){
 }
 
 // ── PAGES ─────────────────────────────────────────────────────────
-export function showPage(id){$$<HTMLElement>('.page').forEach(p=>p.classList.remove('active'));$(id).classList.add('active');}
+export function showPage(id: string){$$<HTMLElement>('.page').forEach(p=>p.classList.remove('active'));$(id).classList.add('active');}
 export function showSetup(){showPage('setup-page');}
 export function showSettings(){renderThemeGrid();showPage('settings-page');}
-export let _themeOrigin='setup';
+export let _themeOrigin: 'setup'|'game'='setup';
 export function showThemeFromSetup(){_themeOrigin='setup';renderThemeGrid();showPage('settings-page');}
 export function showThemeFromGame(){_themeOrigin='game';renderThemeGrid();$('game-screen').style.display='none';if(typeof diceUpdateFab==='function')diceUpdateFab();showPage('settings-page');}
 export function backFromTheme(){
@@ -314,7 +322,7 @@ export function renderThemeGrid(){
 // Applique au fond de l'ecran selecteur la matiere du theme donne.
 // On lit les variables --mat/--mat-blend/--mat-op deja definies par [data-theme]
 // via un element temporaire, sans redeclarer les data-uri.
-export function applyScreenMaterial(themeId){
+export function applyScreenMaterial(themeId: string){
   const screen=$opt('theme-mat-screen');
   if(!screen) return;
   const probe=document.createElement('div');
@@ -337,27 +345,27 @@ export function applyScreenMaterial(themeId){
 
 
 // ── SETUP ─────────────────────────────────────────────────────────
-export function selectPlayer(n){numPlayers=n;$$<HTMLElement>('#players-grid .player-chip').forEach(c=>{c.classList.toggle('on',parseInt(c.textContent)===n);});checkGoBtn();}
-export function selectStartPreset(v){
+export function selectPlayer(n: number){numPlayers=n;$$<HTMLElement>('#players-grid .player-chip').forEach(c=>{c.classList.toggle('on',parseInt(c.textContent!)===n);});checkGoBtn();}
+export function selectStartPreset(v: number){
   startPoints=v;
   const known=[0,10,20,40,50,100];
   const chip=$q<HTMLElement>(`#start-presets .points-chip[data-val="${v}"]`);
   $$<HTMLElement>('#start-presets .points-chip').forEach(c=>c.classList.remove('on'));
   if(chip){chip.classList.add('on');$<HTMLInputElement>('points-custom').value='';}
-  else{$<HTMLInputElement>('points-custom').value=v>0?v:'';}
+  else{$<HTMLInputElement>('points-custom').value=v>0?String(v):'';}
   checkGoBtn();
 }
-export function selectObjectifPreset(val){
+export function selectObjectifPreset(val: number){
   $$<HTMLElement>('#objectif-presets .points-chip').forEach(c=>{
-    c.classList.toggle('on', parseInt(c.dataset.oval)===val);
+    c.classList.toggle('on', parseInt(c.dataset.oval!)===val);
   });
   $<HTMLInputElement>('objectif-custom').value='';
   checkGoBtn();
 }
-export function selectBloquer(mode){ bloquerMode=mode; } // UI supprimée
+export function selectBloquer(mode: BloquerMode){ bloquerMode=mode; } // UI supprimée
 
 // ── OBJECTIF ──────────────────────────────────────────────────────
-export function selectObjectif(mode){
+export function selectObjectif(mode: ObjectifMode){
   objectifMode=mode;
   ['none','elim','win'].forEach(m=>{
     $('obj-'+m).classList.toggle('on',m===mode);
@@ -411,14 +419,14 @@ export function toggleLastLoser(){
   updateWinOptionsUI();
 }
 
-export function getObjectifVal(){
+export function getObjectifVal(): number|null{
   const custom=$<HTMLInputElement>('objectif-custom');
   if(custom.value!==''){
     const v=parseInt(custom.value);
     return isNaN(v)?null:v;
   }
   const activeChip=$q<HTMLElement>('#objectif-presets .points-chip.on');
-  if(activeChip)return parseInt(activeChip.dataset.oval);
+  if(activeChip)return parseInt(activeChip.dataset.oval!);
   return null;
 }
 export function applyObjectif(){
@@ -435,7 +443,7 @@ export function applyObjectif(){
     if(val!==null && val>startPoints) maxPoints=val; // seulement si montée
   }
 }
-export function setObjectifFromPreset(mode,val){
+export function setObjectifFromPreset(mode: ObjectifMode,val: number|null|undefined){
   objectifMode=mode;
   ['none','elim','win'].forEach(m=>{
     $('obj-'+m).classList.toggle('on',m===mode);
@@ -458,7 +466,7 @@ export function setObjectifFromPreset(mode,val){
         chip.classList.add('on');
         custom.value=''; // chip active → champ vide
       } else {
-        custom.value=val;
+        custom.value=String(val);
       }
     }
   }
@@ -475,13 +483,13 @@ export function checkGoBtn(){
   btn.disabled=!ok;
   if(ok){
     let label=`${t('btnNext')} (${numPlayers}j · ${fmtNum(startPoints)}pts`;
-    if(objectifMode!=='none'&&getObjectifVal()!==null)label+=` · ${objectifMode==='elim'?t('btnElim'):t('btnWin')} ${fmtNum(getObjectifVal())}`;
+    if(objectifMode!=='none'&&getObjectifVal()!==null)label+=` · ${objectifMode==='elim'?t('btnElim'):t('btnWin')} ${fmtNum(getObjectifVal() as number)}`;
     btn.textContent=label+')';
   } else {btn.textContent=t('btnNext');}
 }
 
 // ── PROFILS JOUEURS ───────────────────────────────────────────────
-export function loadProfiles(){
+export function loadProfiles(): string[]{
   try{return JSON.parse(localStorage.getItem('scoretrack_profiles')||'[]');}catch(e){return[];}
 }
 export function saveProfiles(){
@@ -508,8 +516,8 @@ export function renderProfileChips(){
     list.appendChild(chip);
   });
 }
-export let _lastFocusedInput=null;
-export function fillName(name){
+export let _lastFocusedInput: HTMLInputElement|null=null;
+export function fillName(name: string){
   const inputs=[...$$<HTMLInputElement>('.name-input')];
   // Utiliser la dernière case explicitement cliquée/focalisée
   if(_lastFocusedInput&&inputs.includes(_lastFocusedInput)){
@@ -521,7 +529,7 @@ export function fillName(name){
   const empty=inputs.find(inp=>!inp.value.trim());
   if(empty){empty.value=name;empty.focus();}
 }
-export function deleteProfile(name){
+export function deleteProfile(name: string){
   let profiles=loadProfiles().filter(p=>p!==name);
   localStorage.setItem('scoretrack_profiles',JSON.stringify(profiles));
   renderProfileChips();
@@ -532,7 +540,7 @@ export function showNamesScreen(){
   _lastFocusedInput=null;
   const list=$('names-list');list.innerHTML='';
   const sw=window.innerWidth;
-  let cardVisW;
+  let cardVisW: number;
   if(numPlayers<=2)      cardVisW=sw;
   else if(numPlayers<=6) cardVisW=sw/2;
   else                   cardVisW=sw/3;
@@ -546,7 +554,7 @@ export function showNamesScreen(){
 
   for(let i=0;i<numPlayers;i++){
     const row=document.createElement('div');row.className='name-row';
-    const av=document.createElement('div');av.className='name-avatar';av.style.color=COLORS[i%12];av.style.borderColor=COLORS[i%12];av.textContent=i+1;
+    const av=document.createElement('div');av.className='name-avatar';av.style.color=COLORS[i%12];av.style.borderColor=COLORS[i%12];av.textContent=String(i+1);
     const inp=document.createElement('input');inp.className='name-input';inp.type='text';
     inp.placeholder=`${t("player")} ${i+1}`;inp.maxLength=maxLen;inp.autocomplete='off';
     inp.addEventListener('focus',()=>{_lastFocusedInput=inp;});
@@ -593,13 +601,15 @@ export function startGame(){
 }
 
 // ── RENDER ────────────────────────────────────────────────────────
+/** Case de la grille des cartes : joueur i (−1 = case vide), rotation, colonne/ligne et étendue. */
+interface Placement { i: number; rot?: CardRot; c: number; r: number; cs: number; rs: number; }
 export function renderGame(){
   const wrap=$('players-wrap');
   wrap.innerHTML='';
   wrap.style.visibility='hidden';
   const n=players.length;
   const s=seatOrder;
-  let cols,rows,placements;
+  let cols: number,rows: number,placements: Placement[];
 
   switch(n){
     case 1:
@@ -715,12 +725,12 @@ export function renderGame(){
   wrap.style.gridTemplateRows=`repeat(${rows},minmax(0,1fr))`;
 
   placements.forEach(({i,rot,c,r,cs,rs})=>{
-    let cell;
+    let cell: HTMLDivElement;
     if(i===-1){
       cell=document.createElement('div');
       cell.style.cssText='background:var(--bg2);overflow:hidden;min-width:0;min-height:0;';
     } else {
-      cell=buildCard(i,rot);
+      cell=buildCard(i,rot!);
     }
     cell.style.gridColumn=`${c}/span ${cs}`;
     cell.style.gridRow=`${r}/span ${rs}`;
@@ -752,7 +762,7 @@ export function renderGame(){
 }
 
 // ── BUILD CARD ────────────────────────────────────────────────────
-export function buildCard(pi,rot){
+export function buildCard(pi: number,rot: CardRot){
   if(pi===undefined||pi===null||!players[pi])return document.createElement('div');
   const p=players[pi];
   const card=document.createElement('div');card.className=`pcard color-${(pi%10)+1} ${rot}${p.eliminated?' elim':''}`;card.id=`card-${pi}`;
@@ -763,17 +773,17 @@ export function buildCard(pi,rot){
   const zone=document.createElement('div');zone.className='tap-zone';
   zone.innerHTML=`${nameHtml}<div class="score-wrap"><span class="score ${cls}" id="sc-${pi}">${fmtNum(p.score)}</span><span class="delta-flash" id="df-${pi}"></span></div><span class="tap-sign-minus">－</span><span class="tap-sign-plus">＋</span>`;
 
-  const getIsPlus=(e,isTouch)=>{
+  const getIsPlus=(e: MouseEvent|TouchEvent,isTouch: boolean)=>{
     const rect=card.getBoundingClientRect();
-    const cx=isTouch?e.changedTouches[0].clientX:e.clientX;
-    const cy=isTouch?e.changedTouches[0].clientY:e.clientY;
+    const cx=isTouch?(e as TouchEvent).changedTouches[0].clientX:(e as MouseEvent).clientX;
+    const cy=isTouch?(e as TouchEvent).changedTouches[0].clientY:(e as MouseEvent).clientY;
     if(rot==='rot-l')   return(cy-rect.top)>=rect.height/2;
     if(rot==='rot-r')   return(cy-rect.top)<rect.height/2;
     if(rot==='rot-180') return(cx-rect.left)<rect.width/2;
     return(cx-rect.left)>=rect.width/2;
   };
 
-  let holdTimer=null,didHold=false;
+  let holdTimer: ReturnType<typeof setTimeout>|null=null,didHold=false;
   let swipeStartX=0,swipeStartY=0,swipeActive=false;
   const SWIPE_THRESHOLD=40; // px minimum pour déclencher
 
@@ -801,7 +811,7 @@ export function buildCard(pi,rot){
 
     if(Math.max(adx,ady) >= SWIPE_THRESHOLD){
       // Swipe détecté — direction dominante détermine la rotation du modal
-      let swipeRot;
+      let swipeRot: CardRot;
       if(adx >= ady){
         swipeRot = dx > 0 ? 'rot-l' : 'rot-r';  // gauche→droite = rot-l, droite→gauche = rot-r
       } else {
@@ -840,7 +850,7 @@ export function buildCard(pi,rot){
     if(ppW)ppW.style.display='none'; // masquer le prénom de la zone
     card.classList.add('win');
     const tag=document.createElement('div');tag.className='win-tag';
-    const winScore=p.finalScore!==undefined?p.finalScore:null;
+    const winScore: number|null=p.finalScore!==undefined?p.finalScore:null;
     const scoreStr=winScore!==null?`<div class="tag-score">${fmtNum(winScore)}</div>`:'';
     const nameStr=p.playerName?`<div class="elim-name">${p.playerName}</div>`:'';
     const winnerCount = players.filter(pl=>pl.winner).length;
@@ -870,11 +880,11 @@ export function buildCard(pi,rot){
 }
 
 // ── FIT TEXTS ─────────────────────────────────────────────────────
-export let _fitCache={};
-export function fitCard(card){
+export let _fitCache: Record<string,string>={};
+export function fitCard(card: HTMLElement){
     const isLat=card.classList.contains('rot-l')||card.classList.contains('rot-r');
     const inner=$q<HTMLElement>('.card-inner',card);
-    let visH,visW;
+    let visH: number,visW: number;
     if(isLat&&inner&&inner.offsetWidth>0&&inner.offsetHeight>0){
       const r=inner.getBoundingClientRect();
       visH=r.width;visW=r.height;
@@ -909,7 +919,7 @@ export function fitCard(card){
     // Vérification après rendu : ajuster pour remplir l'espace quelle que soit la police
     if(sc){
       sc.style.fontSize=scoreSz+'px';
-      const swrap=sc.closest('.score-wrap')||sc.parentElement;
+      const swrap=sc.closest<HTMLElement>('.score-wrap')||sc.parentElement;
       // Pas de marge : on remplit tout l'espace du wrap. Le bump déborde
       // dans la carte (overflow du .score-wrap retiré côté CSS).
       const availW=swrap?swrap.offsetWidth*0.98:usW*0.98;
@@ -985,11 +995,11 @@ export function fitTexts(){
 export function fixLateral(){
   _fitCache={};
   $$<HTMLElement>('.rot-0 .card-inner,.rot-180 .card-inner').forEach(inner=>{
-    const pc=inner.parentElement;const w=pc.offsetWidth,h=pc.offsetHeight;
+    const pc=inner.parentElement as HTMLElement;const w=pc.offsetWidth,h=pc.offsetHeight;
     if(!w||!h)return;inner.style.width=w+'px';inner.style.height=h+'px';
   });
   $$<HTMLElement>('.rot-l .card-inner,.rot-r .card-inner').forEach(inner=>{
-    const pc=inner.parentElement;const w=pc.offsetWidth,h=pc.offsetHeight;
+    const pc=inner.parentElement as HTMLElement;const w=pc.offsetWidth,h=pc.offsetHeight;
     if(!w||!h)return;inner.style.width=h+'px';inner.style.height=w+'px';
   });
 }
@@ -1013,7 +1023,7 @@ document.addEventListener('visibilitychange',()=>{
 // Pas d'action supplémentaire sur orientationchange — les modaux g/d gèrent nativement
 
 // ── ADJUST ────────────────────────────────────────────────────────
-export function adjust(i,delta,zone){
+export function adjust(i: number,delta: number,zone?: HTMLElement|null){
   const p=players[i];if(p.eliminated||p.winner)return;
   const minVal=bloquerMode==='min'?startPoints:(allowNeg||objectifMode==='elim'||objectifMode==='none'?-Infinity:(objectifMode==='win'&&winPoints!==null&&winPoints<startPoints?winPoints:0));
   const capMax=bloquerMode==='max'?startPoints:(maxPoints===Infinity?Infinity:maxPoints);
@@ -1034,7 +1044,7 @@ export function adjust(i,delta,zone){
   logGrouped(i,rawDelta);
 }
 
-export function scoreClass(score){
+export function scoreClass(score: number): string{
   if(elimPoints!==null){
     // Élimination par le bas (score descend vers elimPoints)
     if(elimPoints<startPoints){
@@ -1061,7 +1071,7 @@ export function scoreClass(score){
 }
 
 // ── UPDATE DISPLAY ────────────────────────────────────────────────
-export function updateDisplay(i,zone,delta){
+export function updateDisplay(i: number,zone: HTMLElement|null|undefined,delta: number){
   const p=players[i];
   const sc=$opt(`sc-${i}`);
   if(!sc)return;
@@ -1077,7 +1087,7 @@ export function updateDisplay(i,zone,delta){
   }
 
   // Invalider le cache de cette carte pour forcer le recalcul du fontSize
-  const card=sc.closest('.pcard');
+  const card=sc.closest<HTMLElement>('.pcard');
   if(card&&card.id)delete _fitCache[card.id];
   // Refitter uniquement cette carte (immédiat, pas de setTimeout)
   if(card)fitCard(card);
@@ -1179,7 +1189,7 @@ export function updateDisplay(i,zone,delta){
 // ── ÉLIMINATION ───────────────────────────────────────────────────
 
 // ── ÉLIMINATION DIRECTE (sans confirmation) ──────────────────────
-export function elimDirect(i){
+export function elimDirect(i: number){
   rankCounter++;
   players[i].eliminated=true;
   players[i].elimRank=rankCounter;
@@ -1196,7 +1206,7 @@ export function elimDirect(i){
       renderGame();
       window._afterWinAnim=function(){
         $('winner-name').textContent=t('winner');
-        $('winner-sub').textContent=(alive[0].playerName||'')+(alive[0].playerName?' · ':'')+fmtNum(alive[0].finalScore)+' pts';
+        $('winner-sub').textContent=(alive[0].playerName||'')+(alive[0].playerName?' · ':'')+fmtNum(alive[0].finalScore as number)+' pts';
         showWinnerModal(true);
         localStorage.removeItem('scoretrack_save');
         window._afterWinAnim=null;
@@ -1222,8 +1232,8 @@ export function cancelElim(){
 }
 
 // ── FLASH ─────────────────────────────────────────────────────────
-export function flashZone(z,cls){if(!z||!z.classList)return;z.classList.add(cls);setTimeout(()=>z.classList.remove(cls),200);}
-export function flashDelta(i,groupSum){
+export function flashZone(z: HTMLElement|null|undefined,cls: string){if(!z||!z.classList)return;z.classList.add(cls);setTimeout(()=>z.classList.remove(cls),200);}
+export function flashDelta(i: number,groupSum: number){
   if(players[i]&&(players[i].winner||players[i].eliminated))return;
   const el=$opt(`df-${i}`);if(!el)return;
   const s=groupSum>0?'+':'';
@@ -1235,7 +1245,7 @@ export function flashDelta(i,groupSum){
 }
 
 // ── LOG GROUPÉ ────────────────────────────────────────────────────
-export function logGrouped(pi,delta){
+export function logGrouped(pi: number,delta: number){
   // Toujours forcer fermeture du groupe ouvert avant d'en créer un nouveau via modal
   let group=history.find(h=>h.playerIdx===pi&&h.open);
   if(!group){
@@ -1248,12 +1258,12 @@ export function logGrouped(pi,delta){
   // Durée du flash proportionnelle au nombre de taps
   flashDelta(pi,sum);
   if(groupTimers[pi])clearTimeout(groupTimers[pi]);
-  groupTimers[pi]=setTimeout(()=>{group.open=false;},GROUP_DELAY);
+  groupTimers[pi]=setTimeout(()=>{group!.open=false;},GROUP_DELAY);
   saveGame();
 }
 
 // ── MODAL SCORE MANUEL ────────────────────────────────────────────
-export function openScoreModal(pi, forceRot){
+export function openScoreModal(pi: number, forceRot?: CardRot){
   if(window._modalJustClosed) return;
   const p=players[pi];if(!p||p.eliminated||p.winner)return;
   // Toujours fermer le groupe ouvert pour cet index
@@ -1264,7 +1274,7 @@ export function openScoreModal(pi, forceRot){
   updateModalDisplay();
   setSign(modalSign);
   // Orienter : forcé par le swipe, ou rotation de la carte pour l'appui long
-  const rot=forceRot||(p.rot||'rot-0');
+  const rot: CardRot=forceRot||(p.rot||'rot-0');
   const overlay=$<ScoreModalEl>('score-modal');
   const rotEl=$('modal-content-rotatable');
   const box=$q<HTMLElement>('.modal-box',overlay);
@@ -1450,9 +1460,9 @@ export function closeScoreModal(){
     });
   }
 
-  function getRot(){ return overlay._modalRot||'rot-0'; }
+  function getRot(): CardRot{ return overlay._modalRot||'rot-0'; }
 
-  function getD(touches){
+  function getD(touches: TouchList){
     const dx=touches[0].clientX-_sx, dy=touches[0].clientY-_sy;
     const r=getRot();
     if(r==='rot-0')   return dy;
@@ -1462,7 +1472,7 @@ export function closeScoreModal(){
     return dy;
   }
 
-  function apply(d){
+  function apply(d: number){
     const clamped=Math.max(0,d);
     const r=getRot();
     if(r==='rot-0'){
@@ -1507,16 +1517,16 @@ export function closeScoreModal(){
   }
 
   // Bloquer les clics sur boutons après un pinch-zoom
-  let _wasPinch=false, _pinchBlockTimer=null;
+  let _wasPinch=false, _pinchBlockTimer: ReturnType<typeof setTimeout>|null=null;
 
-  $q<HTMLElement>('.modal-box',overlay).addEventListener('touchstart', e=>{
+  $q<HTMLElement>('.modal-box',overlay)!.addEventListener('touchstart', e=>{
     if(e.touches.length>=2){
       _wasPinch=true;
-      clearTimeout(_pinchBlockTimer);
+      clearTimeout(_pinchBlockTimer!); // clearTimeout(null) : sans effet
     }
   },{passive:true});
 
-  $q<HTMLElement>('.modal-box',overlay).addEventListener('touchend', e=>{
+  $q<HTMLElement>('.modal-box',overlay)!.addEventListener('touchend', e=>{
     if(_wasPinch){
       e.preventDefault();
       e.stopPropagation();
@@ -1524,15 +1534,15 @@ export function closeScoreModal(){
     }
   },{passive:false});
 
-  $q<HTMLElement>('.modal-box',overlay).addEventListener('click', e=>{
+  $q<HTMLElement>('.modal-box',overlay)!.addEventListener('click', e=>{
     if(_wasPinch){ e.stopPropagation(); e.preventDefault(); }
   },{capture:true});
 
-  function startDrag(e){
+  function startDrag(e: TouchEvent){
     if(overlay.classList.contains('hidden')) return;
     if(e.touches.length>1) return; // laisser le pinch-zoom
     // Exclure les touches sur keypad et boutons
-    if(e.target.closest('.modal-keypad,.modal-confirm-row,.modal-sign-row')) return;
+    if((e.target as Element).closest('.modal-keypad,.modal-confirm-row,.modal-sign-row')) return;
     _active=true; _vel=0; _lastD=0; _lastT=performance.now();
     _sx=e.touches[0].clientX; _sy=e.touches[0].clientY;
     _origTop  = overlay.style.top  || '0px';
@@ -1548,7 +1558,7 @@ export function closeScoreModal(){
     document.addEventListener('touchend',  onDragEnd,  {passive:false});
   }
 
-  function onDragMove(e){
+  function onDragMove(e: TouchEvent){
     if(!_active) return;
     e.preventDefault();
     const now=performance.now(), d=Math.max(0,getD(e.touches));
@@ -1557,7 +1567,7 @@ export function closeScoreModal(){
     apply(d);
   }
 
-  function onDragEnd(e){
+  function onDragEnd(e: TouchEvent){
     document.removeEventListener('touchmove', onDragMove);
     document.removeEventListener('touchend',  onDragEnd);
     if(!_active) return;
@@ -1575,18 +1585,18 @@ export function closeScoreModal(){
   overlay.addEventListener('touchend', e=>{
     if(_active) return;
     const b=$q<HTMLElement>('.modal-box',overlay);
-    if(b && !b.contains(e.target)){ e.preventDefault(); closeScoreModal(); }
+    if(b && !b.contains(e.target as Node)){ e.preventDefault(); closeScoreModal(); }
   },{passive:false});
 })();
 
-export function setSign(s){
+export function setSign(s: 1|-1){
   modalSign=s;
   $('sign-plus').classList.toggle('active',s===1);
   $('sign-minus').classList.toggle('active',s===-1);
   updateModalDisplay();
   if(parseInt(modalValue)>0) confirmScoreModal();
 }
-export function pressKey(k){
+export function pressKey(k: string|number){
   if(k==='⌫')modalValue=modalValue.length>1?modalValue.slice(0,-1):'0';
   else if(k==='00')modalValue=modalValue==='0'?'0':modalValue+'00';
   else modalValue=modalValue==='0'?String(k):modalValue+k;
@@ -1624,9 +1634,9 @@ export function confirmScoreModal(){
 
 // ── UNDO ──────────────────────────────────────────────────────────
 (function setupUndo(){
-  const btn=$<HTMLButtonElement>('undo-btn');let iv=null,to=null;
-  const start=e=>{e.preventDefault();undoLast();to=setTimeout(()=>{iv=setInterval(undoLast,120);},500);};
-  const stop=()=>{clearTimeout(to);clearInterval(iv);to=null;iv=null;};
+  const btn=$<HTMLButtonElement>('undo-btn');let iv: ReturnType<typeof setInterval>|null=null,to: ReturnType<typeof setTimeout>|null=null;
+  const start=(e: Event)=>{e.preventDefault();undoLast();to=setTimeout(()=>{iv=setInterval(undoLast,120);},500);};
+  const stop=()=>{clearTimeout(to!);clearInterval(iv!);to=null;iv=null;}; // clear*(null) : sans effet
   btn.addEventListener('touchstart',start,{passive:false});btn.addEventListener('touchend',stop);btn.addEventListener('touchcancel',stop);
   btn.addEventListener('mousedown',start);btn.addEventListener('mouseup',stop);btn.addEventListener('mouseleave',stop);
 })();
@@ -1642,7 +1652,7 @@ export function undoLast(){
   $('winner-modal').classList.add('hidden');
   $('elim-modal').classList.add('hidden');
   elimPending=-1;
-  const s=JSON.parse(undoStack.pop());
+  const s: UndoSnapshot=JSON.parse(undoStack.pop() as string);
   players=s.players;history=s.history;seatOrder=s.seatOrder;actionCounter=s.actionCounter;
   $<HTMLButtonElement>('undo-btn').disabled=undoStack.length===0;
   _fitCache={};
@@ -1651,7 +1661,7 @@ export function undoLast(){
 
 export function rotatePlayers(){
   if(players.length<2)return;saveUndo();
-  const last=seatOrder.pop();seatOrder.unshift(last);
+  const last=seatOrder.pop() as number;seatOrder.unshift(last);
   renderGame();
 }
 
@@ -1688,7 +1698,7 @@ export function confirmEndgame(){
 
   if(eg.type==='lastLoser'){
     const p=players[eg.winnerIdx];
-    const loser=players[eg.loserIdx];
+    const loser=players[eg.loserIdx!];
     loser.finalScore=(loser.rawScore!==undefined)?loser.rawScore:loser.score;
     rankCounter++;loser.eliminated=true;loser.elimRank=rankCounter;
     renderGame(); saveGame();
@@ -1696,9 +1706,9 @@ export function confirmEndgame(){
     // Après l'anim finisher (ou win si champion), lancer l'élim
     const afterWin=function(){
       window._afterWinAnim=null; window._afterFinAnim=null;
-      playElimAnim(eg.loserIdx);
+      playElimAnim(eg.loserIdx!);
       window._afterElimAnim=function(){
-        const loserName=loser.playerName||(t('player')+' '+(eg.loserIdx+1));
+        const loserName=loser.playerName||(t('player')+' '+(eg.loserIdx!+1));
         $('winner-icon').textContent='💀';
         $('winner-name').textContent=loserName;
         $('winner-sub').textContent=fmtNum(loser.finalScore||loser.rawScore||loser.score)+' pts';
@@ -1712,7 +1722,7 @@ export function confirmEndgame(){
   }
 }
 
-export function showWinnerModal(isChampion){
+export function showWinnerModal(isChampion: boolean){
   $('winner-icon').textContent=isChampion?'🏆':'🏁';
   $('winner-modal').classList.remove('hidden');
 }
@@ -1745,7 +1755,7 @@ export function showRecap(){
     }
     else if(p.eliminated){
       const showRank=players.length>2 && !lastLoser && !singleWinner;
-      const ordinal = p.elimRank===1?t('elimFirst1'):(p.elimRank+t('elimFirstN'));
+      const ordinal = p.elimRank===1?t('elimFirst1'):((p.elimRank as number)+t('elimFirstN'));
       statusBadge=`<div class="recap-status elim">💀 ${t('eliminated')}${showRank?' · '+ordinal:''}</div>`;
     }
     html+=`<div class="recap-player"><div class="recap-player-header"><div class="recap-player-dot" style="background:${COLORS[pi%12]};box-shadow:0 0 6px ${COLORS[pi%12]}"></div><div class="recap-player-name">${p.playerName||(t('player')+' '+(pi+1))}</div>${statusBadge}</div>`;
@@ -1860,7 +1870,7 @@ export function confirmReset(){
   function animateFit(){
     const t0 = performance.now();
     const wrap = $('players-wrap');
-    function loop(now){
+    function loop(now: number){
       void wrap.offsetHeight; fixLateral(); _fitCache={}; fitTexts();
       if(now - t0 < 350) requestAnimationFrame(loop);
     }
@@ -1881,14 +1891,14 @@ export function confirmReset(){
     buttons.style.maxHeight='0';
     buttons.style.opacity='0';
     animateFit();
-    clearTimeout(_barTimer);
+    clearTimeout(_barTimer!);
   }
   function toggleBar(){ bar.classList.contains('open') ? snapClose() : snapOpen(); }
 
   // Auto-fermeture après 3s d'inactivité
-  let _barTimer=null;
+  let _barTimer: ReturnType<typeof setTimeout>|null=null;
   function resetBarTimer(){
-    clearTimeout(_barTimer);
+    clearTimeout(_barTimer!); // clearTimeout(null) : sans effet
     if(bar.classList.contains('open')){
       _barTimer=setTimeout(()=>snapClose(), 3000);
     }
@@ -1940,7 +1950,7 @@ export function confirmReset(){
 (function init(){
   const g=$('players-grid');
   for(let i=1;i<=12;i++){
-    const d=document.createElement('div');d.className='player-chip';d.textContent=i;
+    const d=document.createElement('div');d.className='player-chip';d.textContent=String(i);
     d.onclick=()=>{
       $$<HTMLElement>('#players-grid .player-chip').forEach(c=>c.classList.remove('on'));
       d.classList.add('on');numPlayers=i;checkGoBtn();
@@ -1949,11 +1959,11 @@ export function confirmReset(){
     };
     g.appendChild(d);
   }
-  $$<HTMLElement>('#start-presets .points-chip').forEach(c=>{c.onclick=()=>{$$<HTMLElement>('#start-presets .points-chip').forEach(x=>x.classList.remove('on'));c.classList.add('on');startPoints=parseInt(c.dataset.val);$<HTMLInputElement>('points-custom').value='';checkGoBtn();selectedPresetIdx=-1;$$<HTMLElement>('.preset-card').forEach(x=>x.classList.remove('on'));};});
+  $$<HTMLElement>('#start-presets .points-chip').forEach(c=>{c.onclick=()=>{$$<HTMLElement>('#start-presets .points-chip').forEach(x=>x.classList.remove('on'));c.classList.add('on');startPoints=parseInt(c.dataset.val!);$<HTMLInputElement>('points-custom').value='';checkGoBtn();selectedPresetIdx=-1;$$<HTMLElement>('.preset-card').forEach(x=>x.classList.remove('on'));};});
   $<HTMLInputElement>('points-custom').addEventListener('input',function(){$$<HTMLElement>('#start-presets .points-chip').forEach(x=>x.classList.remove('on'));selectedPresetIdx=-1;$$<HTMLElement>('.preset-card').forEach(c=>c.classList.remove('on'));const v=parseInt(this.value);startPoints=isNaN(v)?-1:v;checkGoBtn();});
   const kp=$('modal-keypad');
   [7,8,9,4,5,6,1,2,3,'⌫',0,'00'].forEach(k=>{
-    const b=document.createElement('button');b.className='key-btn'+(k==='⌫'?' del':'');b.textContent=k;
+    const b=document.createElement('button');b.className='key-btn'+(k==='⌫'?' del':'');b.textContent=String(k);
     b.addEventListener('touchstart', e => {
       if (e.touches.length > 1 || window._isZooming) return;
       e.preventDefault();
