@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { ConvexGeometry } from 'three/examples/jsm/geometries/ConvexGeometry.js';
-import { t } from '../i18n';
 
 /* ═══════ SOLIDES D'ARCHIMÈDE → DUAL DE CATALAN (vrais dés) ═══════ */
 export var PHI=(1+Math.sqrt(5))/2, IPHI=1/PHI;
@@ -103,3 +102,4 @@ export function catalanDie(archFn: () => THREE.Vector3[], radius?: number, onSph
   }
   return geo;
 }
+

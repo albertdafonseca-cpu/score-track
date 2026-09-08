@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { ConvexGeometry } from 'three/examples/jsm/geometries/ConvexGeometry.js';
-import { t } from '../i18n';
 import { _DIE_TARGET, _DIE_TARGET_D3, _dieFaceTexture, _makeDie, _themeColorHex } from './cube';
 import { archIcosidodecahedron, archRhombicosidodecahedron, archRhombicuboctahedron, archTruncCuboctahedron, archTruncIcosidodecahedron, catalanDie } from './polyhedra';
 import type { BodyGeoUserData, DieFace, DieGroup, DiePlates, NumTexUserData, PlateMesh, RoundEdge, RoundVert } from './types';

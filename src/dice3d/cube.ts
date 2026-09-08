@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { t } from '../i18n';
 import { $opt } from '../dom';
 import type { CubeTarget } from './types';
 
