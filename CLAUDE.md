@@ -1,6 +1,15 @@
 # ScoreTrack — repères pour les contributions
 
-Application web mono-fichier (`index.html`) : compteur de scores universel + lanceur de dés 3D (Three.js r149 embarqué). Pas de build, pas de dépendances : ouvrir le fichier suffit.
+Application web mono-page : compteur de scores universel + lanceur de dés 3D (Three.js r149). Depuis la migration TypeScript, le code vit dans `src/` et `index.html` charge `dist/app.js`.
+
+## Structure et outillage (depuis la migration TypeScript, 2026-09-08)
+- `npm install` puis `npm run build` (esbuild : `src/main.ts` → `dist/app.js`, IIFE minifié + source map, et copie d'`index.html` dans `dist/` avec le script pointé sur `./app.js`). `dist/` est le site statique déployable (Vercel : `outputDirectory: dist`). Ouvrir `index.html` à la racine fonctionne aussi après un build. `npm run typecheck` = `tsc --noEmit` strict ; `npm run check` enchaîne les deux.
+- Modules : `src/i18n/translations.ts` (18 langues), `src/i18n.ts`, `src/game.ts` (état + réglages + partie + cartes + modal de score + récap, le plus gros module), `src/recap-pdf.ts`, `src/animations.ts`, `src/dice-ui.ts` (feuille du lanceur), `src/dice3d/{polyhedra,cube,die,types}.ts` (moteur de dés), `src/sw.ts` (enregistrement du service worker) et `src/sw-worker.ts` (le worker lui-même, compilé à part vers `dist/sw.js` avec la version de `<meta name="app-version">` injectée ; type-check séparé `tsconfig.sw.json`, lib WebWorker), `src/icons.ts`, `src/splash.ts`, `src/main.ts` (expose sur `window` les gestionnaires appelés par les `onclick` du HTML, y compris ceux construits en JS comme `deleteProfile`, et `window.ScoreTrack` = modules, pour les tests).
+- Service worker : un vrai fichier `dist/sw.js` (un worker servi depuis une URL `blob:` est refusé par les navigateurs : l'ancien mode hors ligne n'a jamais fonctionné). Précache tolérant (`./`, `./index.html`, `./app.js`). Le mode hors ligne se teste en servant `dist/` en HTTP puis `context.setOffline(true)` sous Playwright.
+- Types partagés : `src/types.ts` (Player, Settings, GameConfig, HistoryGroup, GamePreset, Theme, DiceConfig, DiceRoll), `src/globals.d.ts` (crochets sur `window`, jsPDF CDN). Helpers DOM : `src/dom.ts` (`$`, `$opt`, `$$`, `$q`).
+- Three.js : dépendance npm `three@0.149.0` épinglée (+ `@types/three`), `ConvexGeometry` importé de `three/examples`. Ne pas monter de version sans revalider le rendu des dés.
+- jsPDF reste chargé depuis le CDN (déclaré dans `globals.d.ts`).
+- Convention TypeScript : `strict` + `noUnusedLocals`, `any` explicite seulement là où le typage n'apporte rien (commenté), pas de `@ts-ignore`. Tous les exports de premier niveau restent exportés (autres modules, tests, `window.ScoreTrack`). Les gestionnaires `onclick` du HTML doivent figurer dans la liste `handlers` de `main.ts`.
 
 ## Conventions fixées (ne pas rediscuter)
 
@@ -18,4 +27,4 @@ Application web mono-fichier (`index.html`) : compteur de scores universel + lan
 - **Feuille (modal) des dés** : hauteur FIXE (88 dvh) : elle garde toujours la même place quel que soit son contenu (aperçu, résultat, choix du joueur). Partie haute figée (`.dice-sheet-top`, ne défile qu'en repli si elle ne tient pas), seul l'**historique** défile (`.dice-history` prend la place restante, min. 48 px). Fermeture : clic sur le fond flouté, ou **glissement vers le bas** de la feuille (même seuils que les pavés numériques : 120 px ou vitesse > 0.3 px/ms) ; dans une zone défilante déjà descendue, le geste fait défiler au lieu de fermer.
 
 ## Vérification visuelle
-Le rendu WebGL se teste sous Playwright/Chromium avec `--use-gl=swiftshader`. Attention : au-delà d'une quinzaine de contextes WebGL simultanés, Chromium blanchit les canvases ; copier chaque rendu dans un canvas 2D puis libérer le contexte.
+Le rendu WebGL se teste sous Playwright/Chromium avec `--use-gl=swiftshader` (après `npm run build`, charger `index.html` ; les fonctions sont accessibles via `window.ScoreTrack.<module>`). Attention : au-delà d'une quinzaine de contextes WebGL simultanés, Chromium blanchit les canvases ; copier chaque rendu dans un canvas 2D puis libérer le contexte.
